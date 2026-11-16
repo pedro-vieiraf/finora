@@ -1,4 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import {
+  Animated,
+  Easing,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 
 import {
@@ -47,12 +55,48 @@ export function DesktopSidebar({
 }: DesktopSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  // Animated.Value é mutável por natureza; o ref mantém a mesma instância
+  // durante toda a vida do componente sem disparar novas renderizações.
+  // eslint-disable-next-line react-hooks/refs
+  const expansion = useRef(new Animated.Value(collapsed ? 0 : 1)).current;
+
+  useEffect(() => {
+    Animated.timing(expansion, {
+      toValue: collapsed ? 0 : 1,
+      duration: 240,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [collapsed, expansion]);
+
+  // eslint-disable-next-line react-hooks/refs
+  const sidebarWidth = expansion.interpolate({
+    inputRange: [0, 1],
+    outputRange: [
+      desktopLayout.sidebarCollapsedWidth,
+      desktopLayout.sidebarWidth,
+    ],
+  });
+
+  // eslint-disable-next-line react-hooks/refs
+  const horizontalPadding = expansion.interpolate({
+    inputRange: [0, 1],
+    outputRange: [10, 14],
+  });
+
+  // Os rótulos só aparecem quando a sidebar já tem largura suficiente para
+  // exibi-los. Assim o texto não é espremido durante a expansão.
+  // eslint-disable-next-line react-hooks/refs
+  const labelsOpacity = expansion.interpolate({
+    inputRange: [0, 0.82, 1],
+    outputRange: [0, 0, 1],
+  });
 
   return (
-    <View
+    <Animated.View
       style={[
         styles.sidebar,
-        collapsed ? styles.sidebarCollapsed : styles.sidebarExpanded,
+        { width: sidebarWidth, paddingHorizontal: horizontalPadding },
       ]}
     >
       <View style={[styles.brand, collapsed && styles.brandCollapsed]}>
@@ -61,14 +105,18 @@ export function DesktopSidebar({
         </View>
 
         {!collapsed ? (
-          <View style={styles.brandText}>
-            <Text style={styles.brandName}>finora</Text>
-            <Text style={styles.brandTagline}>Finanças pessoais</Text>
-          </View>
+          <Animated.View
+            style={[styles.brandText, { opacity: labelsOpacity }]}
+          >
+            <Text numberOfLines={1} style={styles.brandName}>
+              finora
+            </Text>
+            <Text numberOfLines={1} style={styles.brandTagline}>
+              Finanças pessoais
+            </Text>
+          </Animated.View>
         ) : null}
       </View>
-
-      {!collapsed ? <Text style={styles.sectionLabel}>Menu</Text> : null}
 
       <View style={styles.navigation}>
         {NAV_ITEMS.map((item) => {
@@ -105,15 +153,16 @@ export function DesktopSidebar({
               </View>
 
               {!collapsed ? (
-                <Text
+                <Animated.Text
                   numberOfLines={1}
                   style={[
                     styles.navLabel,
                     active && styles.navLabelActive,
+                    { opacity: labelsOpacity },
                   ]}
                 >
                   {item.label}
-                </Text>
+                </Animated.Text>
               ) : null}
             </Pressable>
           );
@@ -136,29 +185,27 @@ export function DesktopSidebar({
       >
         <Text style={styles.collapseIcon}>{collapsed ? '›' : '‹'}</Text>
         {!collapsed ? (
-          <Text style={styles.collapseLabel}>Recolher menu</Text>
+          <Animated.Text
+            numberOfLines={1}
+            style={[styles.collapseLabel, { opacity: labelsOpacity }]}
+          >
+            Recolher menu
+          </Animated.Text>
         ) : null}
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   sidebar: {
     height: '100%',
+    overflow: 'hidden',
     backgroundColor: desktopColors.surface,
     borderRightWidth: 1,
     borderRightColor: desktopColors.border,
     paddingVertical: 24,
-    paddingHorizontal: 14,
     justifyContent: 'flex-start',
-  },
-  sidebarExpanded: {
-    width: desktopLayout.sidebarWidth,
-  },
-  sidebarCollapsed: {
-    width: desktopLayout.sidebarCollapsedWidth,
-    paddingHorizontal: 10,
   },
   brand: {
     flexDirection: 'row',
@@ -193,6 +240,7 @@ const styles = StyleSheet.create({
   brandName: {
     color: desktopColors.primary,
     fontSize: 22,
+    lineHeight: 25,
     fontWeight: '800',
     letterSpacing: -0.7,
     fontFamily: desktopFont,
@@ -201,18 +249,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
     color: desktopColors.textMuted,
     fontSize: 10,
+    lineHeight: 12,
     fontWeight: '600',
     letterSpacing: 0.2,
-    fontFamily: desktopFont,
-  },
-  sectionLabel: {
-    paddingHorizontal: 12,
-    marginBottom: 8,
-    color: desktopColors.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
     fontFamily: desktopFont,
   },
   navigation: {

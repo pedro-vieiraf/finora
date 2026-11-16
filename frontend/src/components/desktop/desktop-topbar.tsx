@@ -34,7 +34,7 @@ import { getCategories, type Category } from '@/services/categories-api';
 import { formatIsoDate, toIsoDate } from '@/utils/date-time';
 import { maskMoney } from '@/utils/privacy';
 
-type TopbarPanel = 'notifications' | 'settings' | null;
+type TopbarPanel = 'notifications' | 'settings';
 
 type SearchTransaction = {
   id: string;
@@ -227,7 +227,8 @@ export function DesktopTopbar() {
   const [query, setQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [panel, setPanel] = useState<TopbarPanel>(null);
+  const [panel, setPanel] = useState<TopbarPanel>('notifications');
+  const [panelOpen, setPanelOpen] = useState(false);
   const [settingsHovered, setSettingsHovered] = useState(false);
   const [privacyHovered, setPrivacyHovered] = useState(false);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -411,6 +412,20 @@ export function DesktopTopbar() {
     blurTimeoutRef.current = setTimeout(() => setSearchOpen(false), 160);
   }
 
+  function togglePanel(nextPanel: TopbarPanel) {
+    if (panelOpen && panel === nextPanel) {
+      setPanelOpen(false);
+      return;
+    }
+
+    setPanel(nextPanel);
+    setPanelOpen(true);
+  }
+
+  function closePanel() {
+    setPanelOpen(false);
+  }
+
   return (
     <View style={styles.topbar}>
       <View style={styles.searchArea}>
@@ -519,11 +534,7 @@ export function DesktopTopbar() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Notificações"
-          onPress={() =>
-            setPanel((current) =>
-              current === 'notifications' ? null : 'notifications',
-            )
-          }
+          onPress={() => togglePanel('notifications')}
           style={({ pressed }) => [
             styles.iconButton,
             pressed && styles.iconButtonPressed,
@@ -583,18 +594,14 @@ export function DesktopTopbar() {
           id="settings-menu-button"
           accessibilityRole="button"
           accessibilityLabel="Configurações"
-          accessibilityState={{ expanded: panel === 'settings' }}
-          onPress={() =>
-            setPanel((current) =>
-              current === 'settings' ? null : 'settings',
-            )
-          }
+          accessibilityState={{ expanded: panelOpen && panel === 'settings' }}
+          onPress={() => togglePanel('settings')}
           onHoverIn={() => setSettingsHovered(true)}
           onHoverOut={() => setSettingsHovered(false)}
           style={({ pressed }) => [
             styles.iconButton,
             settingsHovered && styles.iconButtonHovered,
-            panel === 'settings' && styles.iconButtonActive,
+            panelOpen && panel === 'settings' && styles.iconButtonActive,
             pressed && styles.iconButtonPressed,
           ]}
         >
@@ -602,7 +609,7 @@ export function DesktopTopbar() {
             name={SETTINGS_ICON}
             size={19}
             tintColor={
-              panel === 'settings' || settingsHovered
+              (panelOpen && panel === 'settings') || settingsHovered
                 ? desktopColors.primary
                 : desktopColors.textSecondary
             }
@@ -612,13 +619,13 @@ export function DesktopTopbar() {
 
       <Modal
         transparent
-        visible={panel !== null}
+        visible={panelOpen}
         animationType="fade"
-        onRequestClose={() => setPanel(null)}
+        onRequestClose={closePanel}
       >
         <Pressable
           style={styles.modalBackdrop}
-          onPress={() => setPanel(null)}
+          onPress={closePanel}
         >
           <View
             style={[
@@ -648,7 +655,7 @@ export function DesktopTopbar() {
                       <Pressable
                         key={recurrence.id}
                         onPress={() => {
-                          setPanel(null);
+                          closePanel();
                           router.navigate('/recurrences');
                         }}
                         style={({ pressed }) => [
@@ -682,7 +689,7 @@ export function DesktopTopbar() {
 
                   <Pressable
                     onPress={() => {
-                      setPanel(null);
+                      closePanel();
                       router.navigate('/recurrences');
                     }}
                     style={({ pressed }) => [
@@ -702,7 +709,7 @@ export function DesktopTopbar() {
                       key={item.key}
                       item={item}
                       onPress={() => {
-                        setPanel(null);
+                        closePanel();
                         router.navigate(item.href);
                       }}
                     />
