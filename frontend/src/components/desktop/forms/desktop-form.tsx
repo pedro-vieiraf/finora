@@ -10,6 +10,7 @@ import {
   View,
   useWindowDimensions,
   type StyleProp,
+  type ViewInstance,
   type ViewStyle,
 } from 'react-native';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
@@ -232,7 +233,7 @@ export function DesktopFormSelect({
   const [internalOpen, setInternalOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [anchor, setAnchor] = useState<SelectAnchor | null>(null);
-  const triggerRef = useRef<View>(null);
+  const triggerRef = useRef<ViewInstance>(null);
   const { height: windowHeight } = useWindowDimensions();
 
   const isOpen = open ?? internalOpen;

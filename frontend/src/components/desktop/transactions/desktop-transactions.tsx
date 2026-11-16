@@ -11,6 +11,7 @@ import {
   View,
   type GestureResponderEvent,
   type StyleProp,
+  type ViewInstance,
   type ViewStyle,
 } from 'react-native';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
@@ -185,7 +186,7 @@ function FilterSelect({
   options: SelectOption[];
   onChange: (value: string) => void;
 }) {
-  const triggerRef = useRef<View>(null);
+  const triggerRef = useRef<ViewInstance>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [anchor, setAnchor] = useState({ x: 12, y: 12, width: 220 });
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
