@@ -352,7 +352,9 @@ export function useDesktopDashboard() {
     accountsError ?? transactionsError ?? categoriesError;
 
   return {
+    accounts,
     activeAccounts,
+    categories,
     totalBalance,
     selectedMonth,
     monthLabel,

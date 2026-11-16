@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -31,6 +31,8 @@ import {
   type DashboardTransaction,
   type MonthlySeriesPoint,
 } from '@/components/desktop/dashboard/use-desktop-dashboard';
+import { TransactionFormModal } from '@/components/transactions/transaction-form-modal';
+import { useFeedback } from '@/contexts/feedback-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { maskMoney } from '@/utils/privacy';
 
@@ -61,6 +63,12 @@ const KPI_ICONS: Record<
     web: 'insights',
   },
 };
+
+const NEW_TRANSACTION_ICON = {
+  ios: 'plus',
+  android: 'add',
+  web: 'add',
+} satisfies SymbolViewProps['name'];
 
 const CHART_RANGE_OPTIONS: readonly {
   value: ChartRange;
@@ -364,8 +372,12 @@ function RecentTransactionRow({
 
 export function DesktopDashboard() {
   const router = useRouter();
+  const { showToast } = useFeedback();
   const { hidden } = usePrivacy();
+  const [formVisible, setFormVisible] = useState(false);
   const {
+    accounts,
+    categories,
     activeAccounts,
     totalBalance,
     selectedMonth,
@@ -379,9 +391,7 @@ export function DesktopDashboard() {
     categoryBreakdown,
     recentTransactions,
     isInitialLoading,
-    refreshing,
     errorMessage,
-    refreshDashboard,
   } = useDesktopDashboard();
 
   const resultTone: KpiTone =
@@ -406,6 +416,19 @@ export function DesktopDashboard() {
     CHART_RANGE_OPTIONS[1];
 
   const chartSubtitle = `${chartRangeOption.description} até ${monthLabel.toLowerCase()}`;
+
+  function openCreateTransaction() {
+    if (activeAccounts.length === 0) {
+      showToast({
+        variant: 'warning',
+        title: 'Nenhuma conta ativa',
+        message: 'Crie ou reative uma conta antes de registrar uma transação.',
+      });
+      return;
+    }
+
+    setFormVisible(true);
+  }
 
   return (
     <ScrollView
@@ -457,23 +480,19 @@ export function DesktopDashboard() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Atualizar painel"
-            disabled={refreshing}
-            onPress={() => void refreshDashboard()}
+            accessibilityLabel="Nova transação"
+            onPress={openCreateTransaction}
             style={({ pressed }) => [
-              styles.refreshButton,
-              pressed && styles.refreshButtonPressed,
-              refreshing && styles.refreshButtonDisabled,
+              styles.newTransactionButton,
+              pressed && styles.newTransactionButtonPressed,
             ]}
           >
-            {refreshing ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.refreshIcon}>↻</Text>
-            )}
-            <Text style={styles.refreshLabel}>
-              {refreshing ? 'Atualizando' : 'Atualizar'}
-            </Text>
+            <SymbolView
+              name={NEW_TRANSACTION_ICON}
+              size={16}
+              tintColor="#FFFFFF"
+            />
+            <Text style={styles.newTransactionLabel}>Nova transação</Text>
           </Pressable>
         </View>
       </View>
@@ -727,6 +746,16 @@ export function DesktopDashboard() {
           </View>
         </>
       )}
+
+      {formVisible ? (
+        <TransactionFormModal
+          mode="create"
+          accounts={accounts}
+          categories={categories}
+          variant="desktop"
+          onClose={() => setFormVisible(false)}
+        />
+      ) : null}
     </ScrollView>
   );
 }
@@ -814,32 +843,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: desktopFont,
   },
-  refreshButton: {
+  newTransactionButton: {
     height: 42,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     borderRadius: 12,
     backgroundColor: desktopColors.primary,
   },
-  refreshButtonPressed: {
+  newTransactionButtonPressed: {
     backgroundColor: desktopColors.primaryStrong,
   },
-  refreshButtonDisabled: {
-    opacity: 0.72,
-  },
-  refreshIcon: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    lineHeight: 17,
-    fontWeight: '700',
-    fontFamily: desktopFont,
-  },
-  refreshLabel: {
+  newTransactionLabel: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     fontFamily: desktopFont,
   },
   loadingCard: {
