@@ -5,7 +5,6 @@ import {
   ThemeProvider,
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { DesktopShell } from '@/components/desktop/desktop-shell';
@@ -14,6 +13,7 @@ import { FeedbackProvider } from '@/contexts/feedback-context';
 import { PrivacyProvider } from '@/contexts/privacy-context';
 import { RecurrencesProvider } from '@/contexts/recurrences-context';
 import { TransactionsProvider } from '@/contexts/transactions-context';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
 
 SplashScreen.preventAutoHideAsync();
