@@ -12,9 +12,10 @@ import { useFocusEffect, useRouter } from 'expo-router';
 
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
 import { DesktopRecurrences } from '@/components/desktop/recurrences/desktop-recurrences';
+import { MobileScreenHeader } from '@/components/mobile/mobile-screen-header';
 import { RecurrenceFormModal } from '@/components/recurrences/recurrence-form-modal';
 import {
-  RECURRENCE_COLORS as COLORS,
+  RECURRENCE_COLORS,
   formatCurrency,
   formatRecurrenceDate,
   frequencyLabel,
@@ -25,11 +26,23 @@ import { useFeedback } from '@/contexts/feedback-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useRecurrences } from '@/contexts/recurrences-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
+import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
 import { getCategories, type Category } from '@/services/categories-api';
 import type { RecurrenceStatus } from '@/services/recurrences-api';
 import { maskMoney } from '@/utils/privacy';
 
 type StatusFilter = 'all' | RecurrenceStatus;
+
+const COLORS = {
+  ...RECURRENCE_COLORS,
+  background: mobileColors.background,
+  surface: mobileColors.surface,
+  primary: mobileColors.primary,
+  primaryLight: mobileColors.primarySoft,
+  text: mobileColors.text,
+  secondary: mobileColors.textSecondary,
+  border: mobileColors.border,
+};
 
 const STATUS_FILTERS: { label: string; value: StatusFilter }[] = [
   { label: 'Todas', value: 'all' },
@@ -157,31 +170,21 @@ function RecurrencesMobileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>FINORA / PLANEJAMENTO</Text>
-            <Text style={styles.title}>Recorrências</Text>
-          </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar recorrência"
-            onPress={openCreateForm}
-            style={styles.addButton}
-          >
-            <Text style={styles.addButtonText}>+</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.description}>
-          Organize despesas e receitas que se repetem automaticamente.
-        </Text>
+        <MobileScreenHeader
+          eyebrow="finora / planejamento"
+          title="Assinaturas"
+          subtitle="Organize despesas e receitas que se repetem automaticamente."
+          primaryAction={{
+            accessibilityLabel: 'Adicionar assinatura',
+            onPress: openCreateForm,
+          }}
+        />
 
         <View style={styles.summaryCard}>
           <View>
@@ -427,53 +430,11 @@ const styles = StyleSheet.create({
   },
   content: {
     width: '100%',
-    maxWidth: 900,
+    maxWidth: mobileLayout.contentMaxWidth,
     alignSelf: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerText: {
-    flex: 1,
-  },
-  eyebrow: {
-    color: COLORS.primary,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: 6,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.6,
-  },
-  addButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 26,
-    lineHeight: 28,
-    fontWeight: '600',
-  },
-  description: {
-    color: COLORS.secondary,
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 8,
-    marginBottom: 20,
+    paddingHorizontal: mobileLayout.horizontalPadding,
+    paddingTop: mobileLayout.contentPaddingTop,
+    paddingBottom: mobileLayout.contentPaddingBottom,
   },
   summaryCard: {
     flexDirection: 'row',

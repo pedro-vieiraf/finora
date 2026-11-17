@@ -28,6 +28,7 @@ import type {
   TransactionType as ApiTransactionType,
 } from '../../services/transactions-api';
 import { DesktopTransactions } from '@/components/desktop/transactions/desktop-transactions';
+import { MobileScreenHeader } from '@/components/mobile/mobile-screen-header';
 import {
   TransactionFormModal,
   type TransactionFormMode,
@@ -35,6 +36,7 @@ import {
 import { useFeedback } from '@/contexts/feedback-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
+import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
 import { maskMoney } from '@/utils/privacy';
 import { sortTransactionsByTimestampDescending } from '../../utils/transaction-sort';
 
@@ -56,19 +58,19 @@ type Transaction = {
 };
 
 const COLORS = {
-  background: '#F7F7F2',
-  surface: '#FFFFFF',
-  primary: '#1F5B45',
-  primaryLight: '#E7F0E9',
-  text: '#202720',
-  secondary: '#747C73',
-  border: '#E7E9E2',
-  income: '#27835B',
-  incomeBackground: '#E8F5EC',
-  expense: '#C6534B',
-  expenseBackground: '#FBECE9',
-  transfer: '#5474A1',
-  transferBackground: '#EDF1F8',
+  background: mobileColors.background,
+  surface: mobileColors.surface,
+  primary: mobileColors.primary,
+  primaryLight: mobileColors.primarySoft,
+  text: mobileColors.text,
+  secondary: mobileColors.textSecondary,
+  border: mobileColors.border,
+  income: mobileColors.income,
+  incomeBackground: mobileColors.incomeSoft,
+  expense: mobileColors.expense,
+  expenseBackground: mobileColors.expenseSoft,
+  transfer: mobileColors.transfer,
+  transferBackground: mobileColors.transferSoft,
 };
 
 const FILTERS: { label: string; value: FilterType }[] = [
@@ -495,28 +497,21 @@ function TransactionsMobileScreen() {
   const error = screenError ?? transactionsError;
 
   return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.eyebrow}>SEU DINHEIRO, EM DETALHES</Text>
-              <Text style={styles.title}>Transações</Text>
-            </View>
-
-            <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Adicionar transação"
-                onPress={openCreateModal}
-                style={styles.addButton}
-            >
-              <Text style={styles.addButtonText}>+</Text>
-            </Pressable>
-          </View>
+          <MobileScreenHeader
+            eyebrow="finora"
+            title="Transações"
+            primaryAction={{
+              accessibilityLabel: 'Adicionar transação',
+              onPress: openCreateModal,
+            }}
+          />
 
           <View style={styles.monthSelector}>
             <Pressable
@@ -777,48 +772,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
-    maxWidth: 900,
+    paddingHorizontal: mobileLayout.horizontalPadding,
+    paddingTop: mobileLayout.contentPaddingTop,
+    paddingBottom: mobileLayout.contentPaddingBottom,
+    maxWidth: mobileLayout.contentMaxWidth,
     width: '100%',
     alignSelf: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 22,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  eyebrow: {
-    color: COLORS.secondary,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: 6,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  addButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 12,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    lineHeight: 33,
-    fontWeight: '400',
   },
   monthSelector: {
     flexDirection: 'row',

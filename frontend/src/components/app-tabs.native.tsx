@@ -1,39 +1,44 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'react-native';
+import { NativeTabs } from 'expo-router/native-tabs';
 
-import { Colors } from '@/constants/theme';
+import { MOBILE_NAV_ITEMS } from '@/constants/mobile-navigation';
+import {
+  mobileColors,
+  mobileFont,
+  mobileTypography,
+} from '@/constants/mobile-theme';
 
 export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
-
   return (
     <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{
-        selected: { color: colors.text },
+      backgroundColor={mobileColors.surface}
+      tintColor={mobileColors.primary}
+      iconColor={{
+        default: mobileColors.textMuted,
+        selected: mobileColors.primary,
       }}
+      labelStyle={{
+        default: {
+          ...mobileTypography.tabLabel,
+          color: mobileColors.textSecondary,
+          fontFamily: mobileFont,
+        },
+        selected: {
+          ...mobileTypography.tabLabel,
+          color: mobileColors.primary,
+          fontWeight: '700',
+          fontFamily: mobileFont,
+        },
+      }}
+      indicatorColor={mobileColors.primarySoft}
+      rippleColor={mobileColors.primarySoft}
+      labelVisibilityMode="labeled"
     >
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Início</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon md="home" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="transactions">
-        <NativeTabs.Trigger.Label>Transações</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon md="receipt_long" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="recurrences">
-        <NativeTabs.Trigger.Label>Recorrências</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon md="repeat" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="accounts">
-        <NativeTabs.Trigger.Label>Contas</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon md="account_balance_wallet" />
-      </NativeTabs.Trigger>
+      {MOBILE_NAV_ITEMS.map((item) => (
+        <NativeTabs.Trigger key={item.route} name={item.route}>
+          <NativeTabs.Trigger.Label>{item.label}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={item.sf} md={item.md} />
+        </NativeTabs.Trigger>
+      ))}
     </NativeTabs>
   );
 }
