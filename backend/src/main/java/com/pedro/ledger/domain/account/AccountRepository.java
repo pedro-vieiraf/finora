@@ -26,6 +26,14 @@ public interface AccountRepository {
   Optional<Account> findById(UUID id);
 
   /**
+   * Finds an account and locks it for update.
+   *
+   * @param id account identifier
+   * @return an Optional containing the locked account if found
+   */
+  Optional<Account> findByIdForUpdate(UUID id);
+
+  /**
    * Finds all accounts.
    *
    * @return a list containing all accounts
