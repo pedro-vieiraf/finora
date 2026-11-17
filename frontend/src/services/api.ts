@@ -1,9 +1,19 @@
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { Platform } from 'react-native';
+
+/**
+ * No Android o `localhost` aponta para o próprio aparelho, então a URL da API
+ * pode ser configurada separadamente (por exemplo, com o IP do computador na
+ * rede Tailscale). As demais plataformas continuam usando EXPO_PUBLIC_API_URL.
+ */
+const API_URL = Platform.OS === 'android'
+    ? process.env.EXPO_PUBLIC_API_URL_ANDROID ?? process.env.EXPO_PUBLIC_API_URL
+    : process.env.EXPO_PUBLIC_API_URL;
 const REQUEST_TIMEOUT_MS = 10_000;
 
 if (!API_URL) {
   throw new Error(
-      'EXPO_PUBLIC_API_URL não está configurada. Verifique o arquivo .env.',
+      'EXPO_PUBLIC_API_URL não está configurada. Verifique o arquivo .env. ' +
+      'No Android, EXPO_PUBLIC_API_URL_ANDROID tem prioridade.',
   );
 }
 
