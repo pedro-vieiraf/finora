@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   desktopColors,
@@ -14,7 +15,10 @@ export default function AboutScreen() {
   const isDesktop = useIsDesktopLayout();
 
   return (
-    <View style={[styles.screen, isDesktop && styles.screenDesktop]}>
+    <SafeAreaView
+      style={[styles.screen, isDesktop && styles.screenDesktop]}
+      edges={['top', 'bottom']}
+    >
       <View style={styles.card}>
         <Text style={styles.eyebrow}>Finora</Text>
         <Text style={styles.title}>Sobre a Finora</Text>
@@ -25,7 +29,14 @@ export default function AboutScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+              return;
+            }
+
+            router.replace('/');
+          }}
           style={({ pressed }) => [
             styles.button,
             pressed && styles.buttonPressed,
@@ -34,7 +45,7 @@ export default function AboutScreen() {
           <Text style={styles.buttonText}>Voltar</Text>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

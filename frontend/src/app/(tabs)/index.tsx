@@ -13,11 +13,13 @@ import { SymbolView } from 'expo-symbols';
 
 import { DesktopDashboard } from '@/components/desktop/dashboard/desktop-dashboard';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
+import { MobileScreenHeader } from '@/components/mobile/mobile-screen-header';
 import { useAccounts, type Account } from '@/contexts/accounts-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
 import { useTransactions, type Transaction } from '@/contexts/transactions-context';
 import { getCategories, type Category } from '@/services/categories-api';
+import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
 import {
   filterTransactionsByMonth,
   getActiveAccounts,
@@ -28,19 +30,19 @@ import { sortTransactionsByTimestampDescending } from '@/utils/transaction-sort'
 import { maskMoney } from '@/utils/privacy';
 
 const COLORS = {
-  background: '#F7F7F2',
-  surface: '#FFFFFF',
-  primary: '#1F5B45',
-  primarySoft: '#E5F0E9',
-  text: '#202820',
-  secondary: '#69736B',
-  border: '#E6E8E2',
-  income: '#237A4B',
-  incomeBackground: '#E2F3E8',
-  expense: '#B5473C',
-  expenseBackground: '#FBE9E6',
-  transfer: '#5474A1',
-  transferBackground: '#EDF1F8',
+  background: mobileColors.background,
+  surface: mobileColors.surface,
+  primary: mobileColors.primary,
+  primarySoft: mobileColors.primarySoft,
+  text: mobileColors.text,
+  secondary: mobileColors.textSecondary,
+  border: mobileColors.border,
+  income: mobileColors.income,
+  incomeBackground: mobileColors.incomeSoft,
+  expense: mobileColors.expense,
+  expenseBackground: mobileColors.expenseSoft,
+  transfer: mobileColors.transfer,
+  transferBackground: mobileColors.transferSoft,
 };
 
 const MONTH_ABBREVIATIONS = [
@@ -181,21 +183,6 @@ function getTransactionPalette(type: TransactionType) {
   };
 }
 
-function DashboardHeader({ refreshing }: { refreshing: boolean }) {
-  return (
-    <View style={styles.header}>
-      <View style={styles.headerText}>
-        <Text style={styles.brand}>finora</Text>
-        <Text style={styles.subtitle}>Seu controle financeiro</Text>
-      </View>
-
-      {refreshing ? (
-        <ActivityIndicator size="small" color={COLORS.primary} />
-      ) : null}
-    </View>
-  );
-}
-
 function MobileDashboardScreen() {
   const router = useRouter();
   const {
@@ -324,7 +311,11 @@ function MobileDashboardScreen() {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.loadingContent}>
-          <DashboardHeader refreshing={false} />
+          <MobileScreenHeader
+            eyebrow="finora"
+            title="Dashboard"
+            subtitle="Seu controle financeiro"
+          />
 
           <View style={styles.loadingState}>
             <ActivityIndicator size="large" color={COLORS.primary} />
@@ -342,7 +333,12 @@ function MobileDashboardScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <DashboardHeader refreshing={refreshing} />
+        <MobileScreenHeader
+          eyebrow="finora"
+          title="Dashboard"
+          subtitle="Seu controle financeiro"
+          loading={refreshing}
+        />
 
         {errorMessage ? (
           <View style={styles.errorBlock}>
@@ -701,18 +697,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 32,
-    maxWidth: 720,
+    paddingHorizontal: mobileLayout.horizontalPadding,
+    paddingTop: mobileLayout.contentPaddingTop,
+    paddingBottom: mobileLayout.contentPaddingBottom,
+    maxWidth: mobileLayout.contentMaxWidth,
     width: '100%',
     alignSelf: 'center',
   },
   loadingContent: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    maxWidth: 720,
+    paddingHorizontal: mobileLayout.horizontalPadding,
+    paddingTop: mobileLayout.contentPaddingTop,
+    maxWidth: mobileLayout.contentMaxWidth,
     width: '100%',
     alignSelf: 'center',
   },
@@ -724,26 +720,6 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   loadingText: {
-    fontSize: 13,
-    color: COLORS.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  headerText: {
-    flex: 1,
-  },
-  brand: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: COLORS.primary,
-    letterSpacing: -1,
-  },
-  subtitle: {
-    marginTop: 3,
     fontSize: 13,
     color: COLORS.secondary,
   },

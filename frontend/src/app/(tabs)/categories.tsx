@@ -16,8 +16,10 @@ import { useFocusEffect } from 'expo-router';
 import { DesktopCategories } from '@/components/desktop/categories/desktop-categories';
 import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
+import { MobileScreenHeader } from '@/components/mobile/mobile-screen-header';
 import { useFeedback } from '@/contexts/feedback-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
+import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
 import {
   createCategory,
   deleteCategory,
@@ -32,16 +34,16 @@ import {
 } from '@/utils/categories';
 
 const colors = {
-  background: '#F7F8F5',
-  surface: '#FFFFFF',
-  primary: '#176B52',
-  primaryLight: '#E8F3ED',
-  text: '#202923',
-  secondary: '#788078',
-  border: '#E9ECE7',
-  danger: '#B84D4D',
-  dangerLight: '#F9EDEC',
-  input: '#FAFBF9',
+  background: mobileColors.background,
+  surface: mobileColors.surface,
+  primary: mobileColors.primary,
+  primaryLight: mobileColors.primarySoft,
+  text: mobileColors.text,
+  secondary: mobileColors.textSecondary,
+  border: mobileColors.border,
+  danger: mobileColors.expense,
+  dangerLight: mobileColors.expenseSoft,
+  input: mobileColors.surfaceMuted,
 };
 
 export default function CategoriesScreen() {
@@ -279,32 +281,16 @@ function CategoriesMobileScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.eyebrow}>finora</Text>
-
-          <View style={styles.titleRow}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>Categorias</Text>
-              <Text style={styles.description}>
-                Organize e gerencie as categorias das suas movimentações
-                financeiras.
-              </Text>
-            </View>
-
-            <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Adicionar categoria"
-                style={({ pressed }) => [
-                  styles.addButton,
-                  pressed && styles.pressed,
-                  actionsDisabled && styles.disabledButton,
-                ]}
-                onPress={openCreateForm}
-                disabled={actionsDisabled}
-            >
-              <Text style={styles.addButtonIcon}>＋</Text>
-              <Text style={styles.addButtonText}>Nova</Text>
-            </Pressable>
-          </View>
+          <MobileScreenHeader
+            eyebrow="finora"
+            title="Categorias"
+            subtitle="Organize e gerencie as categorias das suas movimentações financeiras."
+            primaryAction={{
+              accessibilityLabel: 'Adicionar categoria',
+              onPress: openCreateForm,
+              disabled: actionsDisabled,
+            }}
+          />
 
           <View style={styles.summaryCard}>
             <View style={styles.summaryIcon}>
@@ -587,65 +573,11 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     width: '100%',
-    maxWidth: 720,
+    maxWidth: mobileLayout.contentMaxWidth,
     alignSelf: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 28,
-  },
-  eyebrow: {
-    color: colors.primary,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  titleContainer: {
-    flex: 1,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.7,
-  },
-  description: {
-    color: colors.secondary,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 13,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    marginTop: 3,
-    gap: 5,
-  },
-  addButtonIcon: {
-    color: '#FFFFFF',
-    fontSize: 19,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  pressed: {
-    opacity: 0.75,
+    paddingHorizontal: mobileLayout.horizontalPadding,
+    paddingTop: mobileLayout.contentPaddingTop,
+    paddingBottom: mobileLayout.contentPaddingBottom,
   },
   summaryCard: {
     flexDirection: 'row',
