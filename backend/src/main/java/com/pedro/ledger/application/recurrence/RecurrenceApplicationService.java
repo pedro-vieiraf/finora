@@ -65,7 +65,7 @@ public class RecurrenceApplicationService {
       RecurrenceFrequency frequency,
       LocalDate startDate
   ) {
-    Account account = accountRepository.findById(accountId)
+    Account account = accountRepository.findByIdForUpdate(accountId)
         .orElseThrow(() ->
             new AccountNotFoundException("Account not found")
         );
@@ -199,7 +199,7 @@ public class RecurrenceApplicationService {
     }
 
     Account account = accountRepository
-        .findById(recurrence.getAccountId())
+        .findByIdForUpdate(recurrence.getAccountId())
         .orElseThrow(() ->
             new AccountNotFoundException("Account not found")
         );

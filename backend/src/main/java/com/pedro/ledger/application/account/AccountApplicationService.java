@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Application service responsible for account use cases.
@@ -89,8 +90,9 @@ public class AccountApplicationService {
    * @param type new account type, or null to keep the current type
    * @return the updated account
    */
+  @Transactional
   public Account update(UUID id, String name, AccountType type) {
-    Account account = accountRepository.findById(id)
+    Account account = accountRepository.findByIdForUpdate(id)
         .orElseThrow(() ->
             new AccountNotFoundException("Account not found")
         );
@@ -111,8 +113,9 @@ public class AccountApplicationService {
    *
    * @param id account identifier
    */
+  @Transactional
   public void deactivate(UUID id) {
-    Account account = accountRepository.findById(id)
+    Account account = accountRepository.findByIdForUpdate(id)
         .orElseThrow(() ->
             new AccountNotFoundException("Account not found")
         );
@@ -131,8 +134,9 @@ public class AccountApplicationService {
    *
    * @param id account identifier
    */
+  @Transactional
   public void delete(UUID id) {
-    Account account = accountRepository.findById(id)
+    Account account = accountRepository.findByIdForUpdate(id)
         .orElseThrow(() ->
             new AccountNotFoundException("Account not found")
         );
@@ -148,8 +152,9 @@ public class AccountApplicationService {
    * @param id account identifier
    * @return the activated account
    */
+  @Transactional
   public Account activate(UUID id) {
-    Account account = accountRepository.findById(id)
+    Account account = accountRepository.findByIdForUpdate(id)
         .orElseThrow(() ->
             new AccountNotFoundException("Account not found")
         );

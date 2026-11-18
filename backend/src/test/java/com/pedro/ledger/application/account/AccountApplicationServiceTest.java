@@ -226,7 +226,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       when(accountRepository.save(account))
@@ -254,7 +254,7 @@ class AccountApplicationServiceTest {
           .isEqualTo(AccountStatus.ACTIVE);
 
       verify(accountRepository)
-          .findById(id);
+          .findByIdForUpdate(id);
 
       verify(accountRepository)
           .save(account);
@@ -272,7 +272,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       when(accountRepository.save(account))
@@ -294,7 +294,7 @@ class AccountApplicationServiceTest {
           .isEqualTo(Money.of("1000.00"));
 
       verify(accountRepository)
-          .findById(id);
+          .findByIdForUpdate(id);
 
       verify(accountRepository)
           .save(account);
@@ -312,7 +312,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       when(accountRepository.save(account))
@@ -334,7 +334,7 @@ class AccountApplicationServiceTest {
           .isEqualTo(Money.of("1000.00"));
 
       verify(accountRepository)
-          .findById(id);
+          .findByIdForUpdate(id);
 
       verify(accountRepository)
           .save(account);
@@ -344,7 +344,7 @@ class AccountApplicationServiceTest {
     void shouldThrowWhenAccountDoesNotExist() {
       UUID id = UUID.randomUUID();
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -358,7 +358,7 @@ class AccountApplicationServiceTest {
           .hasMessage("Account not found");
 
       verify(accountRepository)
-          .findById(id);
+          .findByIdForUpdate(id);
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -376,7 +376,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       assertThatThrownBy(() ->
@@ -390,7 +390,7 @@ class AccountApplicationServiceTest {
           .hasMessage("Account name cannot be null or blank");
 
       verify(accountRepository)
-          .findById(id);
+          .findByIdForUpdate(id);
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -410,7 +410,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       when(accountRepository.save(account))
@@ -419,7 +419,7 @@ class AccountApplicationServiceTest {
       accountApplicationService.deactivate(id);
 
       assertFalse(account.isActive());
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository).save(account);
     }
 
@@ -427,7 +427,7 @@ class AccountApplicationServiceTest {
     void shouldThrowExceptionWhenAccountDoesNotExist() {
       UUID id = UUID.randomUUID();
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.empty());
 
       assertThrows(
@@ -435,7 +435,7 @@ class AccountApplicationServiceTest {
           () -> accountApplicationService.deactivate(id)
       );
 
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository, never()).save(any());
     }
 
@@ -451,7 +451,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       assertThrows(
@@ -459,7 +459,7 @@ class AccountApplicationServiceTest {
           () -> accountApplicationService.deactivate(id)
       );
 
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository, never()).save(any());
     }
   }
@@ -479,7 +479,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       when(accountRepository.save(account))
@@ -489,7 +489,7 @@ class AccountApplicationServiceTest {
 
       assertThat(account.getStatus())
           .isEqualTo(AccountStatus.DELETED);
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository).save(account);
     }
 
@@ -497,7 +497,7 @@ class AccountApplicationServiceTest {
     void shouldThrowExceptionWhenAccountDoesNotExist() {
       UUID id = UUID.randomUUID();
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.empty());
 
       assertThrows(
@@ -505,7 +505,7 @@ class AccountApplicationServiceTest {
           () -> accountApplicationService.delete(id)
       );
 
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository, never()).save(any());
     }
 
@@ -519,7 +519,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       assertThrows(
@@ -527,7 +527,7 @@ class AccountApplicationServiceTest {
           () -> accountApplicationService.delete(id)
       );
 
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository, never()).save(any());
     }
   }
@@ -547,7 +547,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       when(accountRepository.save(account))
@@ -557,7 +557,7 @@ class AccountApplicationServiceTest {
 
       assertThat(activatedAccount.getStatus())
           .isEqualTo(AccountStatus.ACTIVE);
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository).save(account);
     }
 
@@ -565,7 +565,7 @@ class AccountApplicationServiceTest {
     void shouldThrowExceptionWhenAccountDoesNotExist() {
       UUID id = UUID.randomUUID();
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.empty());
 
       assertThrows(
@@ -573,7 +573,7 @@ class AccountApplicationServiceTest {
           () -> accountApplicationService.activate(id)
       );
 
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository, never()).save(any());
     }
 
@@ -587,7 +587,7 @@ class AccountApplicationServiceTest {
           Money.of("1000.00")
       );
 
-      when(accountRepository.findById(id))
+      when(accountRepository.findByIdForUpdate(id))
           .thenReturn(Optional.of(account));
 
       assertThrows(
@@ -595,7 +595,7 @@ class AccountApplicationServiceTest {
           () -> accountApplicationService.activate(id)
       );
 
-      verify(accountRepository).findById(id);
+      verify(accountRepository).findByIdForUpdate(id);
       verify(accountRepository, never()).save(any());
     }
   }

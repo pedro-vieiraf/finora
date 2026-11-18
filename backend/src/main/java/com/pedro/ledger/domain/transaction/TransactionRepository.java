@@ -12,6 +12,14 @@ public interface TransactionRepository {
   Optional<Transaction> findById(UUID id);
 
   /**
+   * Finds a transaction and locks it for update.
+   *
+   * @param id transaction identifier
+   * @return an Optional containing the locked transaction if found
+   */
+  Optional<Transaction> findByIdForUpdate(UUID id);
+
+  /**
    * Finds the transaction generated for a recurrence occurrence.
    */
   Optional<Transaction> findByRecurrenceIdAndOccurrenceDate(

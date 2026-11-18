@@ -75,6 +75,14 @@ public class CreditCardApplicationService {
     CreditCard card = getByIdForUpdateOrThrow(id);
     Money committed = committedAmount(card);
 
+    if (closingDay != null
+        && closingDay != card.getClosingDay()
+        && !invoiceRepository.findByCardId(id).isEmpty()) {
+      throw new IllegalStateException(
+          "Closing day cannot be changed after invoices exist"
+      );
+    }
+
     if (name != null) {
       card.rename(name);
     }

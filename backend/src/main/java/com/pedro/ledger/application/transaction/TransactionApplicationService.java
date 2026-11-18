@@ -114,30 +114,21 @@ public class TransactionApplicationService {
         );
 
     if (type == TransactionType.TRANSFER) {
-      Account sourceAccount = accountRepository.findById(accountId)
-          .orElseThrow(() ->
-              new AccountNotFoundException("Account not found")
-          );
-
-      Account destinationAccount = accountRepository
-          .findById(destinationAccountId)
-          .orElseThrow(() ->
-              new AccountNotFoundException("Destination account not found")
-          );
+      LockedAccounts accounts = lockAccounts(
+          accountId,
+          destinationAccountId
+      );
 
       TransactionProcessor.process(
           transaction,
-          sourceAccount,
-          destinationAccount
+          accounts.source(),
+          accounts.destination()
       );
 
-      accountRepository.save(sourceAccount);
-      accountRepository.save(destinationAccount);
+      accountRepository.save(accounts.source());
+      accountRepository.save(accounts.destination());
     } else {
-      Account account = accountRepository.findById(accountId)
-          .orElseThrow(() ->
-              new AccountNotFoundException("Account not found")
-          );
+      Account account = lockAccount(accountId, "Account not found");
 
       TransactionProcessor.process(
           transaction,
@@ -169,10 +160,9 @@ public class TransactionApplicationService {
     Transaction transaction = getByIdOrThrow(id);
 
     if (amount != null) {
-      Account account = accountRepository.findById(
-          transaction.getAccountId()
-      ).orElseThrow(() ->
-          new AccountNotFoundException("Account not found")
+      Account account = lockAccount(
+          transaction.getAccountId(),
+          "Account not found"
       );
 
       TransactionProcessor.changeAmount(
@@ -211,38 +201,30 @@ public class TransactionApplicationService {
 
   @Transactional
   public void delete(UUID id) {
-    Transaction transaction = transactionRepository.findById(id)
+    Transaction transaction = transactionRepository.findByIdForUpdate(id)
         .orElseThrow(() ->
             new TransactionNotFoundException()
         );
 
     if (transaction.getType().equals(TransactionType.TRANSFER)) {
-      Account sourceAccount = accountRepository
-          .findById(transaction.getAccountId())
-          .orElseThrow(() ->
-              new AccountNotFoundException("Account not found")
-          );
-
-      Account destinationAccount = accountRepository
-          .findById(transaction.getDestinationAccountId())
-          .orElseThrow(() ->
-              new AccountNotFoundException("Destination account not found")
-          );
+      LockedAccounts accounts = lockAccounts(
+          transaction.getAccountId(),
+          transaction.getDestinationAccountId()
+      );
 
       TransactionProcessor.reverse(
           transaction,
-          sourceAccount,
-          destinationAccount
+          accounts.source(),
+          accounts.destination()
       );
 
-      accountRepository.save(sourceAccount);
-      accountRepository.save(destinationAccount);
+      accountRepository.save(accounts.source());
+      accountRepository.save(accounts.destination());
     } else {
-      Account account = accountRepository
-          .findById(transaction.getAccountId())
-          .orElseThrow(() ->
-              new AccountNotFoundException("Account not found")
-          );
+      Account account = lockAccount(
+          transaction.getAccountId(),
+          "Account not found"
+      );
 
       TransactionProcessor.reverse(
           transaction,
@@ -256,10 +238,50 @@ public class TransactionApplicationService {
   }
 
   private Transaction getByIdOrThrow(UUID id) {
-    return transactionRepository.findById(id)
+    return transactionRepository.findByIdForUpdate(id)
         .orElseThrow(() ->
             new TransactionNotFoundException()
         );
+  }
+
+  private Account lockAccount(UUID accountId, String notFoundMessage) {
+    return accountRepository.findByIdForUpdate(accountId)
+        .orElseThrow(() ->
+            new AccountNotFoundException(notFoundMessage)
+        );
+  }
+
+  /**
+   * Locks two accounts in a deterministic UUID order to avoid deadlocks.
+   */
+  private LockedAccounts lockAccounts(
+      UUID sourceId,
+      UUID destinationId
+  ) {
+    Account source;
+    Account destination;
+
+    if (sourceId.compareTo(destinationId) <= 0) {
+      source = lockAccount(sourceId, "Account not found");
+      destination = lockAccount(
+          destinationId,
+          "Destination account not found"
+      );
+    } else {
+      destination = lockAccount(
+          destinationId,
+          "Destination account not found"
+      );
+      source = lockAccount(sourceId, "Account not found");
+    }
+
+    return new LockedAccounts(source, destination);
+  }
+
+  private record LockedAccounts(
+      Account source,
+      Account destination
+  ) {
   }
 
   private void validateCategory(UUID categoryId) {

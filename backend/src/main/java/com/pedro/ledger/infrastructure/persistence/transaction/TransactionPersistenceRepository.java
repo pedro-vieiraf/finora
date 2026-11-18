@@ -47,6 +47,12 @@ public class TransactionPersistenceRepository implements TransactionRepository {
   }
 
   @Override
+  public Optional<Transaction> findByIdForUpdate(UUID id) {
+    return jpaRepository.findByIdForUpdate(id)
+        .map(mapper::toDomain);
+  }
+
+  @Override
   public Optional<Transaction> findByRecurrenceIdAndOccurrenceDate(
       UUID recurrenceId,
       LocalDate occurrenceDate

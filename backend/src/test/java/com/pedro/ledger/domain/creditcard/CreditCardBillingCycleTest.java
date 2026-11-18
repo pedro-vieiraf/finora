@@ -99,6 +99,35 @@ class CreditCardBillingCycleTest {
   }
 
   @Test
+  void shouldHandleYearTransition() {
+    assertThat(CreditCardBillingCycle.closingDateFor(
+        LocalDate.of(2026, 12, 31),
+        31
+    )).isEqualTo(LocalDate.of(2026, 12, 31));
+
+    assertThat(CreditCardBillingCycle.closingDateFor(
+        LocalDate.of(2027, 1, 1),
+        31
+    )).isEqualTo(LocalDate.of(2027, 1, 31));
+
+    assertThat(CreditCardBillingCycle.cycleStart(
+        LocalDate.of(2027, 1, 31),
+        31
+    )).isEqualTo(LocalDate.of(2027, 1, 1));
+
+    assertThat(CreditCardBillingCycle.dueDate(
+        LocalDate.of(2026, 12, 31),
+        10
+    )).isEqualTo(LocalDate.of(2027, 1, 10));
+
+    assertThat(CreditCardBillingCycle.installmentClosingDate(
+        LocalDate.of(2026, 12, 31),
+        1,
+        31
+    )).isEqualTo(LocalDate.of(2027, 1, 31));
+  }
+
+  @Test
   void shouldRejectInvalidDaysAndDates() {
     assertThatThrownBy(() -> CreditCardBillingCycle.closingDateFor(
         LocalDate.of(2026, 5, 1),

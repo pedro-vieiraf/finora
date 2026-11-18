@@ -33,6 +33,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -91,6 +92,9 @@ class CreditCardIntegrationTest {
   @Autowired
   private TransactionRepository transactionRepository;
 
+  @Autowired
+  private JdbcTemplate jdbcTemplate;
+
   private Account account;
   private CreditCard card;
 
@@ -111,6 +115,53 @@ class CreditCardIntegrationTest {
         15,
         "BRL"
     );
+  }
+
+  @Test
+  void shouldApplyDatabaseConstraintsAndIndexes() {
+    assertThat(jdbcTemplate.queryForObject("""
+        select count(*)
+        from information_schema.table_constraints
+        where table_schema = 'public'
+          and table_name = 'credit_cards'
+          and constraint_name = 'credit_cards_closing_day_check'
+          and constraint_type = 'CHECK'
+        """, Integer.class)).isEqualTo(1);
+
+    assertThat(jdbcTemplate.queryForObject("""
+        select count(*)
+        from information_schema.table_constraints
+        where table_schema = 'public'
+          and table_name = 'credit_card_invoices'
+          and constraint_name = 'credit_card_invoices_amounts_check'
+          and constraint_type = 'CHECK'
+        """, Integer.class)).isEqualTo(1);
+
+    assertThat(jdbcTemplate.queryForObject("""
+        select count(*)
+        from pg_indexes
+        where schemaname = 'public'
+          and indexname = 'uk_credit_card_invoices_card_closing'
+        """, Integer.class)).isEqualTo(1);
+
+    assertThat(jdbcTemplate.queryForObject("""
+        select count(*)
+        from information_schema.table_constraints
+        where table_schema = 'public'
+          and table_name = 'credit_card_installments'
+          and constraint_type = 'FOREIGN KEY'
+        """, Integer.class)).isEqualTo(2);
+
+    assertThat(jdbcTemplate.queryForObject("""
+        select count(*)
+        from pg_indexes
+        where schemaname = 'public'
+          and indexname in (
+            'idx_credit_card_purchases_card_date',
+            'idx_credit_card_installments_invoice',
+            'idx_credit_card_invoice_payments_invoice'
+          )
+        """, Integer.class)).isEqualTo(3);
   }
 
   @Test
@@ -432,6 +483,47 @@ class CreditCardIntegrationTest {
     assertThat(invoiceRepository.findById(closedInvoice.getId())
         .orElseThrow()
         .getTotal()).isEqualTo(Money.of("50.00"));
+  }
+
+  @Test
+  void shouldBlockClosingDayChangeAfterInvoicesExist() {
+    createPurchase("100.00", LocalDate.of(2026, 5, 10), 1);
+
+    assertThatThrownBy(() -> cardService.update(
+        card.getId(),
+        null,
+        null,
+        null,
+        20,
+        null
+    )).isInstanceOf(IllegalStateException.class);
+
+    assertThat(cardService.findById(card.getId()).orElseThrow()
+        .getClosingDay()).isEqualTo(10);
+  }
+
+  @Test
+  void shouldAllowDueDayChangeWithoutChangingExistingInvoices() {
+    CreditCardPurchase purchase = createPurchase(
+        "100.00",
+        LocalDate.of(2026, 5, 10),
+        1
+    );
+    CreditCardInvoice invoice = invoiceFor(purchase, 0);
+    LocalDate originalDueDate = invoice.getDueDate();
+
+    CreditCard updated = cardService.update(
+        card.getId(),
+        null,
+        null,
+        null,
+        null,
+        25
+    );
+
+    assertThat(updated.getDueDay()).isEqualTo(25);
+    assertThat(invoiceRepository.findById(invoice.getId()).orElseThrow()
+        .getDueDate()).isEqualTo(originalDueDate);
   }
 
   @Test

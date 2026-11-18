@@ -69,7 +69,7 @@ class TransactionApplicationServiceTest {
 
       UUID accountId = account.getId();
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -109,7 +109,7 @@ class TransactionApplicationServiceTest {
           .isEqualTo(Money.of("900.00"));
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository)
           .save(account);
@@ -128,7 +128,7 @@ class TransactionApplicationServiceTest {
 
       UUID accountId = account.getId();
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -162,7 +162,7 @@ class TransactionApplicationServiceTest {
           .isEqualTo(Money.of("3500.00"));
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository)
           .save(account);
@@ -188,10 +188,10 @@ class TransactionApplicationServiceTest {
       UUID sourceAccountId = sourceAccount.getId();
       UUID destinationAccountId = destinationAccount.getId();
 
-      when(accountRepository.findById(sourceAccountId))
+      when(accountRepository.findByIdForUpdate(sourceAccountId))
           .thenReturn(Optional.of(sourceAccount));
 
-      when(accountRepository.findById(destinationAccountId))
+      when(accountRepository.findByIdForUpdate(destinationAccountId))
           .thenReturn(Optional.of(destinationAccount));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -225,10 +225,10 @@ class TransactionApplicationServiceTest {
           .isEqualTo(Money.of("700.00"));
 
       verify(accountRepository)
-          .findById(sourceAccountId);
+          .findByIdForUpdate(sourceAccountId);
 
       verify(accountRepository)
-          .findById(destinationAccountId);
+          .findByIdForUpdate(destinationAccountId);
 
       verify(accountRepository)
           .save(sourceAccount);
@@ -244,7 +244,7 @@ class TransactionApplicationServiceTest {
     void shouldThrowExceptionWhenAccountDoesNotExist() {
       UUID accountId = UUID.randomUUID();
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -260,7 +260,7 @@ class TransactionApplicationServiceTest {
           .isInstanceOf(AccountNotFoundException.class);
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -280,10 +280,10 @@ class TransactionApplicationServiceTest {
       UUID sourceAccountId = sourceAccount.getId();
       UUID destinationAccountId = UUID.randomUUID();
 
-      when(accountRepository.findById(sourceAccountId))
+      when(accountRepository.findByIdForUpdate(sourceAccountId))
           .thenReturn(Optional.of(sourceAccount));
 
-      when(accountRepository.findById(destinationAccountId))
+      when(accountRepository.findByIdForUpdate(destinationAccountId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -299,10 +299,7 @@ class TransactionApplicationServiceTest {
           .isInstanceOf(AccountNotFoundException.class);
 
       verify(accountRepository)
-          .findById(sourceAccountId);
-
-      verify(accountRepository)
-          .findById(destinationAccountId);
+          .findByIdForUpdate(destinationAccountId);
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -343,7 +340,7 @@ class TransactionApplicationServiceTest {
       assertThat(result).isSameAs(existing);
 
       verify(accountRepository, never())
-          .findById(any(UUID.class));
+          .findByIdForUpdate(any(UUID.class));
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -366,7 +363,7 @@ class TransactionApplicationServiceTest {
       when(transactionRepository.findById(transactionId))
           .thenReturn(Optional.empty());
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -536,10 +533,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -566,7 +563,7 @@ class TransactionApplicationServiceTest {
           .isEqualTo(Money.of("850.00"));
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository)
           .save(account);
@@ -600,10 +597,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -655,10 +652,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -711,7 +708,7 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -735,7 +732,7 @@ class TransactionApplicationServiceTest {
           .isNull();
 
       verify(accountRepository, never())
-          .findById(any(UUID.class));
+          .findByIdForUpdate(any(UUID.class));
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -763,7 +760,7 @@ class TransactionApplicationServiceTest {
 
       Category category = Category.create("Food");
 
-      when(transactionRepository.findById(transaction.getId()))
+      when(transactionRepository.findByIdForUpdate(transaction.getId()))
           .thenReturn(Optional.of(transaction));
 
       when(categoryRepository.findById(newCategoryId))
@@ -793,7 +790,7 @@ class TransactionApplicationServiceTest {
           .findById(newCategoryId);
 
       verify(accountRepository, never())
-          .findById(any(UUID.class));
+          .findByIdForUpdate(any(UUID.class));
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -829,13 +826,13 @@ class TransactionApplicationServiceTest {
 
       Category category = Category.create("Household");
 
-      when(transactionRepository.findById(transaction.getId()))
+      when(transactionRepository.findByIdForUpdate(transaction.getId()))
           .thenReturn(Optional.of(transaction));
 
       when(categoryRepository.findById(newCategoryId))
           .thenReturn(Optional.of(category));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -865,7 +862,7 @@ class TransactionApplicationServiceTest {
           .findById(newCategoryId);
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository)
           .save(account);
@@ -889,7 +886,7 @@ class TransactionApplicationServiceTest {
           null
       );
 
-      when(transactionRepository.findById(transaction.getId()))
+      when(transactionRepository.findByIdForUpdate(transaction.getId()))
           .thenReturn(Optional.of(transaction));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -913,7 +910,7 @@ class TransactionApplicationServiceTest {
           .isNull();
 
       verify(accountRepository, never())
-          .findById(any(UUID.class));
+          .findByIdForUpdate(any(UUID.class));
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -941,7 +938,7 @@ class TransactionApplicationServiceTest {
           null
       );
 
-      when(transactionRepository.findById(transaction.getId()))
+      when(transactionRepository.findByIdForUpdate(transaction.getId()))
           .thenReturn(Optional.of(transaction));
 
       when(categoryRepository.findById(categoryId))
@@ -962,7 +959,7 @@ class TransactionApplicationServiceTest {
           .findById(categoryId);
 
       verify(accountRepository, never())
-          .findById(any(UUID.class));
+          .findByIdForUpdate(any(UUID.class));
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -988,7 +985,7 @@ class TransactionApplicationServiceTest {
           null
       );
 
-      when(transactionRepository.findById(transaction.getId()))
+      when(transactionRepository.findByIdForUpdate(transaction.getId()))
           .thenReturn(Optional.of(transaction));
 
       when(transactionRepository.save(any(Transaction.class)))
@@ -1016,7 +1013,7 @@ class TransactionApplicationServiceTest {
     void shouldThrowExceptionWhenTransactionDoesNotExist() {
       UUID transactionId = UUID.randomUUID();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -1031,10 +1028,10 @@ class TransactionApplicationServiceTest {
           .isInstanceOf(TransactionNotFoundException.class);
 
       verify(transactionRepository)
-          .findById(transactionId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository, never())
-          .findById(any(UUID.class));
+          .findByIdForUpdate(any(UUID.class));
 
       verify(categoryRepository, never())
           .findById(any(UUID.class));
@@ -1063,10 +1060,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -1081,10 +1078,10 @@ class TransactionApplicationServiceTest {
           .isInstanceOf(AccountNotFoundException.class);
 
       verify(transactionRepository)
-          .findById(transactionId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -1122,10 +1119,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       transactionApplicationService.delete(transactionId);
@@ -1134,10 +1131,10 @@ class TransactionApplicationServiceTest {
           .isEqualTo(Money.of("1000.00"));
 
       verify(transactionRepository)
-          .findById(transactionId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository)
           .save(account);
@@ -1171,10 +1168,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       transactionApplicationService.delete(transactionId);
@@ -1183,10 +1180,10 @@ class TransactionApplicationServiceTest {
           .isEqualTo(Money.of("1000.00"));
 
       verify(transactionRepository)
-          .findById(transactionId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository)
           .save(account);
@@ -1228,13 +1225,13 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(sourceAccountId))
+      when(accountRepository.findByIdForUpdate(sourceAccountId))
           .thenReturn(Optional.of(sourceAccount));
 
-      when(accountRepository.findById(destinationAccountId))
+      when(accountRepository.findByIdForUpdate(destinationAccountId))
           .thenReturn(Optional.of(destinationAccount));
 
       transactionApplicationService.delete(transactionId);
@@ -1246,13 +1243,13 @@ class TransactionApplicationServiceTest {
           .isEqualTo(Money.of("500.00"));
 
       verify(transactionRepository)
-          .findById(transactionId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository)
-          .findById(sourceAccountId);
+          .findByIdForUpdate(sourceAccountId);
 
       verify(accountRepository)
-          .findById(destinationAccountId);
+          .findByIdForUpdate(destinationAccountId);
 
       verify(accountRepository)
           .save(sourceAccount);
@@ -1291,10 +1288,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.of(account));
 
       transactionApplicationService.delete(transactionId);
@@ -1342,13 +1339,13 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(sourceAccountId))
+      when(accountRepository.findByIdForUpdate(sourceAccountId))
           .thenReturn(Optional.of(sourceAccount));
 
-      when(accountRepository.findById(destinationAccountId))
+      when(accountRepository.findByIdForUpdate(destinationAccountId))
           .thenReturn(Optional.of(destinationAccount));
 
       transactionApplicationService.delete(transactionId);
@@ -1367,7 +1364,7 @@ class TransactionApplicationServiceTest {
     void shouldThrowExceptionWhenTransactionDoesNotExist() {
       UUID transactionId = UUID.randomUUID();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -1376,10 +1373,10 @@ class TransactionApplicationServiceTest {
           .isInstanceOf(TransactionNotFoundException.class);
 
       verify(transactionRepository)
-          .findById(transactionId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository, never())
-          .findById(any(UUID.class));
+          .findByIdForUpdate(any(UUID.class));
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -1405,10 +1402,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -1417,10 +1414,10 @@ class TransactionApplicationServiceTest {
           .isInstanceOf(AccountNotFoundException.class);
 
       verify(transactionRepository)
-          .findById(transactionId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository)
-          .findById(accountId);
+          .findByIdForUpdate(accountId);
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -1447,10 +1444,10 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(sourceAccountId))
+      when(accountRepository.findByIdForUpdate(sourceAccountId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -1459,13 +1456,7 @@ class TransactionApplicationServiceTest {
           .isInstanceOf(AccountNotFoundException.class);
 
       verify(transactionRepository)
-          .findById(transactionId);
-
-      verify(accountRepository)
-          .findById(sourceAccountId);
-
-      verify(accountRepository, never())
-          .findById(destinationAccountId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository, never())
           .save(any(Account.class));
@@ -1498,13 +1489,13 @@ class TransactionApplicationServiceTest {
 
       UUID transactionId = transaction.getId();
 
-      when(transactionRepository.findById(transactionId))
+      when(transactionRepository.findByIdForUpdate(transactionId))
           .thenReturn(Optional.of(transaction));
 
-      when(accountRepository.findById(sourceAccountId))
+      when(accountRepository.findByIdForUpdate(sourceAccountId))
           .thenReturn(Optional.of(sourceAccount));
 
-      when(accountRepository.findById(destinationAccountId))
+      when(accountRepository.findByIdForUpdate(destinationAccountId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() ->
@@ -1513,13 +1504,10 @@ class TransactionApplicationServiceTest {
           .isInstanceOf(AccountNotFoundException.class);
 
       verify(transactionRepository)
-          .findById(transactionId);
+          .findByIdForUpdate(transactionId);
 
       verify(accountRepository)
-          .findById(sourceAccountId);
-
-      verify(accountRepository)
-          .findById(destinationAccountId);
+          .findByIdForUpdate(destinationAccountId);
 
       verify(accountRepository, never())
           .save(any(Account.class));
