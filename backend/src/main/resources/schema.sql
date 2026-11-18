@@ -23,3 +23,103 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_transactions_recurrence_occurrence
 
 CREATE INDEX IF NOT EXISTS idx_recurrences_due
   ON recurrences (status, next_occurrence);
+
+-- Credit card support. Hibernate creates the tables and columns from the
+-- entities; these idempotent statements keep check constraints and indexes in
+-- sync with the domain rules.
+ALTER TABLE IF EXISTS credit_cards
+  DROP CONSTRAINT IF EXISTS credit_cards_status_check;
+
+ALTER TABLE IF EXISTS credit_cards
+  ADD CONSTRAINT credit_cards_status_check
+  CHECK (status IN ('ACTIVE', 'INACTIVE'));
+
+ALTER TABLE IF EXISTS credit_cards
+  DROP CONSTRAINT IF EXISTS credit_cards_closing_day_check;
+
+ALTER TABLE IF EXISTS credit_cards
+  ADD CONSTRAINT credit_cards_closing_day_check
+  CHECK (closing_day BETWEEN 1 AND 31);
+
+ALTER TABLE IF EXISTS credit_cards
+  DROP CONSTRAINT IF EXISTS credit_cards_due_day_check;
+
+ALTER TABLE IF EXISTS credit_cards
+  ADD CONSTRAINT credit_cards_due_day_check
+  CHECK (due_day BETWEEN 1 AND 31);
+
+ALTER TABLE IF EXISTS credit_cards
+  DROP CONSTRAINT IF EXISTS credit_cards_limit_check;
+
+ALTER TABLE IF EXISTS credit_cards
+  ADD CONSTRAINT credit_cards_limit_check
+  CHECK (credit_limit > 0);
+
+ALTER TABLE IF EXISTS credit_card_invoices
+  DROP CONSTRAINT IF EXISTS credit_card_invoices_status_check;
+
+ALTER TABLE IF EXISTS credit_card_invoices
+  ADD CONSTRAINT credit_card_invoices_status_check
+  CHECK (status IN ('OPEN', 'CLOSED', 'PARTIALLY_PAID', 'PAID'));
+
+ALTER TABLE IF EXISTS credit_card_invoices
+  DROP CONSTRAINT IF EXISTS credit_card_invoices_amounts_check;
+
+ALTER TABLE IF EXISTS credit_card_invoices
+  ADD CONSTRAINT credit_card_invoices_amounts_check
+  CHECK (
+    total_amount >= 0
+    AND paid_amount >= 0
+    AND paid_amount <= total_amount
+  );
+
+ALTER TABLE IF EXISTS credit_card_invoices
+  DROP CONSTRAINT IF EXISTS credit_card_invoices_dates_check;
+
+ALTER TABLE IF EXISTS credit_card_invoices
+  ADD CONSTRAINT credit_card_invoices_dates_check
+  CHECK (
+    cycle_start <= cycle_end
+    AND cycle_end = closing_date
+    AND due_date > closing_date
+  );
+
+ALTER TABLE IF EXISTS credit_card_purchases
+  DROP CONSTRAINT IF EXISTS credit_card_purchases_status_check;
+
+ALTER TABLE IF EXISTS credit_card_purchases
+  ADD CONSTRAINT credit_card_purchases_status_check
+  CHECK (status IN ('ACTIVE', 'CANCELLED'));
+
+ALTER TABLE IF EXISTS credit_card_purchases
+  DROP CONSTRAINT IF EXISTS credit_card_purchases_amount_check;
+
+ALTER TABLE IF EXISTS credit_card_purchases
+  ADD CONSTRAINT credit_card_purchases_amount_check
+  CHECK (total_amount > 0 AND installment_count > 0);
+
+ALTER TABLE IF EXISTS credit_card_installments
+  DROP CONSTRAINT IF EXISTS credit_card_installments_amount_check;
+
+ALTER TABLE IF EXISTS credit_card_installments
+  ADD CONSTRAINT credit_card_installments_amount_check
+  CHECK (amount > 0 AND installment_number > 0);
+
+ALTER TABLE IF EXISTS credit_card_invoice_payments
+  DROP CONSTRAINT IF EXISTS credit_card_invoice_payments_amount_check;
+
+ALTER TABLE IF EXISTS credit_card_invoice_payments
+  ADD CONSTRAINT credit_card_invoice_payments_amount_check
+  CHECK (amount > 0);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_credit_card_invoices_card_closing
+  ON credit_card_invoices (card_id, closing_date);
+
+CREATE INDEX IF NOT EXISTS idx_credit_card_purchases_card_date
+  ON credit_card_purchases (card_id, purchase_date);
+
+CREATE INDEX IF NOT EXISTS idx_credit_card_installments_invoice
+  ON credit_card_installments (invoice_id);
+
+CREATE INDEX IF NOT EXISTS idx_credit_card_invoice_payments_invoice
+  ON credit_card_invoice_payments (invoice_id, paid_at);

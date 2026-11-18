@@ -6,6 +6,11 @@ import com.pedro.ledger.domain.account.AccountInactiveException;
 import com.pedro.ledger.domain.account.AccountNotFoundException;
 import com.pedro.ledger.domain.account.AccountNotInactiveException;
 import com.pedro.ledger.domain.category.CategoryNotFoundException;
+import com.pedro.ledger.domain.creditcard.CreditCardInactiveException;
+import com.pedro.ledger.domain.creditcard.CreditCardInvoiceNotFoundException;
+import com.pedro.ledger.domain.creditcard.CreditCardNotFoundException;
+import com.pedro.ledger.domain.creditcard.CreditCardPurchaseNotFoundException;
+import com.pedro.ledger.domain.money.CurrencyMismatchException;
 import com.pedro.ledger.domain.recurrence.RecurrenceNotFoundException;
 import com.pedro.ledger.domain.transaction.TransactionNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -71,6 +76,41 @@ public class GlobalExceptionHandler {
       RecurrenceNotFoundException exception
   ) {
     return ResponseEntity.notFound().build();
+  }
+
+  @ExceptionHandler(CreditCardNotFoundException.class)
+  public ResponseEntity<Void> handleCreditCardNotFound(
+      CreditCardNotFoundException exception
+  ) {
+    return ResponseEntity.notFound().build();
+  }
+
+  @ExceptionHandler(CreditCardInvoiceNotFoundException.class)
+  public ResponseEntity<Void> handleCreditCardInvoiceNotFound(
+      CreditCardInvoiceNotFoundException exception
+  ) {
+    return ResponseEntity.notFound().build();
+  }
+
+  @ExceptionHandler(CreditCardPurchaseNotFoundException.class)
+  public ResponseEntity<Void> handleCreditCardPurchaseNotFound(
+      CreditCardPurchaseNotFoundException exception
+  ) {
+    return ResponseEntity.notFound().build();
+  }
+
+  @ExceptionHandler(CreditCardInactiveException.class)
+  public ResponseEntity<Void> handleCreditCardInactive(
+      CreditCardInactiveException exception
+  ) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+  }
+
+  @ExceptionHandler(CurrencyMismatchException.class)
+  public ResponseEntity<Void> handleCurrencyMismatch(
+      CurrencyMismatchException exception
+  ) {
+    return ResponseEntity.badRequest().build();
   }
 
   @ExceptionHandler(IllegalStateException.class)

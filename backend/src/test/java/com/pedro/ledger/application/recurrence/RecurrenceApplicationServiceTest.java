@@ -100,7 +100,7 @@ class RecurrenceApplicationServiceTest {
     void shouldCreateActiveRecurrence() {
       Account account = activeAccount();
 
-      when(accountRepository.findById(account.getId()))
+      when(accountRepository.findByIdForUpdate(account.getId()))
           .thenReturn(Optional.of(account));
 
       when(recurrenceRepository.save(any(Recurrence.class)))
@@ -130,7 +130,7 @@ class RecurrenceApplicationServiceTest {
     void shouldRejectUnknownAccount() {
       UUID accountId = UUID.randomUUID();
 
-      when(accountRepository.findById(accountId))
+      when(accountRepository.findByIdForUpdate(accountId))
           .thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> service.create(
@@ -150,7 +150,7 @@ class RecurrenceApplicationServiceTest {
       Account account = activeAccount();
       account.deactivate();
 
-      when(accountRepository.findById(account.getId()))
+      when(accountRepository.findByIdForUpdate(account.getId()))
           .thenReturn(Optional.of(account));
 
       assertThatThrownBy(() -> service.create(
@@ -170,7 +170,7 @@ class RecurrenceApplicationServiceTest {
       Account account = activeAccount();
       UUID categoryId = UUID.randomUUID();
 
-      when(accountRepository.findById(account.getId()))
+      when(accountRepository.findByIdForUpdate(account.getId()))
           .thenReturn(Optional.of(account));
 
       when(categoryRepository.findById(categoryId))
@@ -340,7 +340,7 @@ class RecurrenceApplicationServiceTest {
       when(recurrenceRepository.findByIdForUpdate(recurrence.getId()))
           .thenReturn(Optional.of(recurrence));
 
-      when(accountRepository.findById(account.getId()))
+      when(accountRepository.findByIdForUpdate(account.getId()))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository
@@ -400,7 +400,7 @@ class RecurrenceApplicationServiceTest {
       when(recurrenceRepository.findByIdForUpdate(recurrence.getId()))
           .thenReturn(Optional.of(recurrence));
 
-      when(accountRepository.findById(account.getId()))
+      when(accountRepository.findByIdForUpdate(account.getId()))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository
@@ -454,7 +454,7 @@ class RecurrenceApplicationServiceTest {
       when(recurrenceRepository.findByIdForUpdate(recurrence.getId()))
           .thenReturn(Optional.of(recurrence));
 
-      when(accountRepository.findById(account.getId()))
+      when(accountRepository.findByIdForUpdate(account.getId()))
           .thenReturn(Optional.of(account));
 
       when(transactionRepository

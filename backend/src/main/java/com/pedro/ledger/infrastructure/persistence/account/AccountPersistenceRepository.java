@@ -58,6 +58,12 @@ public class AccountPersistenceRepository implements AccountRepository {
         .map(mapper::toDomain);
   }
 
+  @Override
+  public Optional<Account> findByIdForUpdate(UUID id) {
+    return jpaRepository.findByIdForUpdate(id)
+        .map(mapper::toDomain);
+  }
+
   /**
    * Finds all accounts.
    *
