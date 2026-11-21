@@ -32,6 +32,7 @@ import { usePrivacy } from '@/contexts/privacy-context';
 import type { CreditCardInvoice } from '@/services/credit-card-invoices-api';
 import {
   deactivateCreditCard as deactivateCreditCardRequest,
+  deleteCreditCard as deleteCreditCardRequest,
   reactivateCreditCard as reactivateCreditCardRequest,
   type CreditCard,
 } from '@/services/credit-cards-api';
@@ -63,6 +64,11 @@ const ICONS = {
     ios: 'checkmark.circle',
     android: 'check_circle',
     web: 'check_circle',
+  },
+  remove: {
+    ios: 'trash',
+    android: 'delete_outline',
+    web: 'delete_outline',
   },
   card: { ios: 'creditcard', android: 'credit_card', web: 'credit_card' },
   calendar: {
@@ -143,9 +149,13 @@ export function DesktopCreditCards() {
     string | null
   >(null);
   const [reactivationError, setReactivationError] = useState('');
+  const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deletionError, setDeletionError] = useState('');
   const mutationInProgressRef = useRef(false);
 
-  const actionsDisabled = loading || deactivating || reactivating;
+  const actionsDisabled =
+    loading || deactivating || reactivating || deleting;
 
   useFocusEffect(
     useCallback(() => {
@@ -182,6 +192,10 @@ export function DesktopCreditCards() {
 
   const reactivatingCard = reactivatingCardId
     ? cards.find((card) => card.id === reactivatingCardId)
+    : undefined;
+
+  const deletingCard = deletingCardId
+    ? cards.find((card) => card.id === deletingCardId)
     : undefined;
 
   function openCreateForm() {
@@ -345,6 +359,56 @@ export function DesktopCreditCards() {
 
     setReactivatingCardId(null);
     setReactivationError('');
+  }
+
+  function openDeletionModal(card: CreditCard) {
+    if (actionsDisabled || mutationInProgressRef.current) {
+      return;
+    }
+
+    setDeletionError('');
+    setDeletingCardId(card.id);
+  }
+
+  async function confirmDeletion() {
+    if (!deletingCardId || mutationInProgressRef.current) {
+      return;
+    }
+
+    const cardId = deletingCardId;
+
+    mutationInProgressRef.current = true;
+    setDeleting(true);
+    setDeletionError('');
+
+    try {
+      await deleteCreditCardRequest(cardId);
+      setDeletingCardId(null);
+
+      await refreshCreditCards().catch(() => {
+        // A mutação já foi confirmada pelo backend.
+      });
+
+      showToast({
+        variant: 'success',
+        title: 'Cartão excluído',
+        message: 'O histórico e as faturas continuam disponíveis.',
+      });
+    } catch (cause) {
+      setDeletionError(getCreditCardErrorMessage(cause, 'delete'));
+    } finally {
+      mutationInProgressRef.current = false;
+      setDeleting(false);
+    }
+  }
+
+  function closeDeletionModal() {
+    if (deleting) {
+      return;
+    }
+
+    setDeletingCardId(null);
+    setDeletionError('');
   }
 
   return (
@@ -572,25 +636,51 @@ export function DesktopCreditCards() {
                   </Pressable>
                 </>
               ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => {
-                    const { card } = menuAnchor;
-                    setMenuAnchor(null);
-                    openReactivationModal(card);
-                  }}
-                  style={({ pressed }) => [
-                    styles.rowMenuItem,
-                    pressed && styles.rowMenuItemPressed,
-                  ]}
-                >
-                  <Icon
-                    name="reactivate"
-                    size={15}
-                    color={desktopColors.primary}
-                  />
-                  <Text style={styles.rowMenuText}>Reativar</Text>
-                </Pressable>
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      const { card } = menuAnchor;
+                      setMenuAnchor(null);
+                      openReactivationModal(card);
+                    }}
+                    style={({ pressed }) => [
+                      styles.rowMenuItem,
+                      pressed && styles.rowMenuItemPressed,
+                    ]}
+                  >
+                    <Icon
+                      name="reactivate"
+                      size={15}
+                      color={desktopColors.primary}
+                    />
+                    <Text style={styles.rowMenuText}>Reativar</Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      const { card } = menuAnchor;
+                      setMenuAnchor(null);
+                      openDeletionModal(card);
+                    }}
+                    style={({ pressed }) => [
+                      styles.rowMenuItem,
+                      pressed && styles.rowMenuItemPressed,
+                    ]}
+                  >
+                    <Icon
+                      name="remove"
+                      size={15}
+                      color={desktopColors.expense}
+                    />
+                    <Text
+                      style={[styles.rowMenuText, styles.rowMenuDangerText]}
+                    >
+                      Excluir
+                    </Text>
+                  </Pressable>
+                </>
               )}
             </View>
           ) : null}
@@ -635,6 +725,22 @@ export function DesktopCreditCards() {
         error={reactivationError}
         onConfirm={() => void confirmReactivation()}
         onCancel={closeReactivationModal}
+      />
+
+      <ConfirmDialog
+        visible={Boolean(deletingCard)}
+        title="Excluir cartão?"
+        message={
+          deletingCard
+            ? `Deseja excluir "${deletingCard.name}"? O cartão será removido da lista e não poderá ser reativado. O histórico e as faturas continuam disponíveis para consulta.`
+            : ''
+        }
+        confirmLabel="Excluir"
+        tone="danger"
+        loading={deleting}
+        error={deletionError}
+        onConfirm={() => void confirmDeletion()}
+        onCancel={closeDeletionModal}
       />
     </ScrollView>
   );
@@ -1366,6 +1472,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     fontFamily: desktopFont,
+  },
+  rowMenuDangerText: {
+    color: desktopColors.expense,
   },
   disclaimer: {
     marginTop: 4,

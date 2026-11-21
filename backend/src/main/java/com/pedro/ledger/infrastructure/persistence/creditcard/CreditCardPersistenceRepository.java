@@ -2,6 +2,7 @@ package com.pedro.ledger.infrastructure.persistence.creditcard;
 
 import com.pedro.ledger.domain.creditcard.CreditCard;
 import com.pedro.ledger.domain.creditcard.CreditCardRepository;
+import com.pedro.ledger.domain.creditcard.CreditCardStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,10 +44,18 @@ public class CreditCardPersistenceRepository
     return jpaRepository.findByIdForUpdate(id).map(mapper::toDomain);
   }
 
+  /**
+   * Finds all credit cards.
+   *
+   * <p>Deleted cards are kept so historical invoices and purchases can
+   * reference them, but they are hidden from listings.
+   *
+   * @return all non-deleted credit cards
+   */
   @Override
   @Transactional(readOnly = true)
   public List<CreditCard> findAll() {
-    return jpaRepository.findAll()
+    return jpaRepository.findAllByStatusNot(CreditCardStatus.DELETED)
         .stream()
         .map(mapper::toDomain)
         .toList();

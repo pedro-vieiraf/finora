@@ -243,6 +243,7 @@ test('formata datas de calendário sem deslocar o fuso', () => {
 test('expõe os rótulos de status usados na interface', () => {
   assert.equal(CARD_STATUS_LABELS.ACTIVE, 'Ativo');
   assert.equal(CARD_STATUS_LABELS.INACTIVE, 'Inativo');
+  assert.equal(CARD_STATUS_LABELS.DELETED, 'Excluído');
   assert.equal(INVOICE_STATUS_LABELS.OPEN, 'Aberta');
   assert.equal(INVOICE_STATUS_LABELS.CLOSED, 'Fechada');
   assert.equal(INVOICE_STATUS_LABELS.PARTIALLY_PAID, 'Parcialmente paga');

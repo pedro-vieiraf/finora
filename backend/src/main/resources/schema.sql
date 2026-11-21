@@ -32,7 +32,7 @@ ALTER TABLE IF EXISTS credit_cards
 
 ALTER TABLE IF EXISTS credit_cards
   ADD CONSTRAINT credit_cards_status_check
-  CHECK (status IN ('ACTIVE', 'INACTIVE'));
+  CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED'));
 
 ALTER TABLE IF EXISTS credit_cards
   DROP CONSTRAINT IF EXISTS credit_cards_closing_day_check;

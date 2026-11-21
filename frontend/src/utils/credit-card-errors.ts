@@ -2,7 +2,8 @@ export type CreditCardOperation =
   | 'create'
   | 'update'
   | 'deactivate'
-  | 'reactivate';
+  | 'reactivate'
+  | 'delete';
 
 export const CLOSING_DAY_LOCKED_MESSAGE =
   'O dia de fechamento não pode ser alterado porque este cartão já possui faturas.';
@@ -50,6 +51,10 @@ export function getCreditCardErrorMessage(
 
       if (operation === 'reactivate') {
         return 'O cartão não pôde ser reativado. Atualize a lista e tente novamente.';
+      }
+
+      if (operation === 'delete') {
+        return 'O cartão não pôde ser excluído. Atualize a lista e tente novamente.';
       }
 
       return 'Não foi possível concluir a operação. Atualize a lista e tente novamente.';

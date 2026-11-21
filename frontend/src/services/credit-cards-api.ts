@@ -1,6 +1,6 @@
 import { apiRequest } from './api';
 
-export type CreditCardStatus = 'ACTIVE' | 'INACTIVE';
+export type CreditCardStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
 /**
  * Cartão de crédito conforme retornado pelo backend.
@@ -72,6 +72,12 @@ export function updateCreditCard(
 
 export function deactivateCreditCard(id: string): Promise<void> {
   return apiRequest<void>(`/credit-cards/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function deleteCreditCard(id: string): Promise<void> {
+  return apiRequest<void>(`/credit-cards/${id}/permanent`, {
     method: 'DELETE',
   });
 }

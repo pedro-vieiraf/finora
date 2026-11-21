@@ -102,6 +102,13 @@ public class CreditCardController {
     return ResponseEntity.noContent().build();
   }
 
+  @DeleteMapping("/{id}/permanent")
+  public ResponseEntity<Void> deletePermanently(@PathVariable UUID id) {
+    service.delete(id);
+
+    return ResponseEntity.noContent().build();
+  }
+
   @PostMapping("/{id}/activation")
   public ResponseEntity<CreditCardResponse> activate(
       @PathVariable UUID id

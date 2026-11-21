@@ -25,6 +25,7 @@ import type {
 export const CARD_STATUS_LABELS: Record<CreditCardStatus, string> = {
   ACTIVE: 'Ativo',
   INACTIVE: 'Inativo',
+  DELETED: 'Excluído',
 };
 
 export const INVOICE_STATUS_LABELS: Record<

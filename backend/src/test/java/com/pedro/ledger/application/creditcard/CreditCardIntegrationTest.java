@@ -15,6 +15,7 @@ import com.pedro.ledger.domain.creditcard.CreditCardInvoiceStatus;
 import com.pedro.ledger.domain.creditcard.CreditCardLimitExceededException;
 import com.pedro.ledger.domain.creditcard.CreditCardPurchase;
 import com.pedro.ledger.domain.creditcard.CreditCardPurchaseStatus;
+import com.pedro.ledger.domain.creditcard.CreditCardStatus;
 import com.pedro.ledger.domain.money.Money;
 import com.pedro.ledger.domain.transaction.TransactionRepository;
 import java.math.BigDecimal;
@@ -559,6 +560,39 @@ class CreditCardIntegrationTest {
     );
 
     assertThat(balance()).isEqualTo(new BigDecimal("900.00"));
+  }
+
+  @Test
+  void shouldRejectDeletingActiveCard() {
+    assertThatThrownBy(() -> cardService.delete(card.getId()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Only inactive credit cards can be deleted");
+
+    assertThat(cardService.findAll()).hasSize(1);
+    assertThat(cardService.findById(card.getId()).orElseThrow()
+        .getStatus()).isEqualTo(CreditCardStatus.ACTIVE);
+  }
+
+  @Test
+  void shouldDeleteInactiveCardAndPreserveHistory() {
+    CreditCardPurchase purchase = createPurchase(
+        "100.00",
+        LocalDate.of(2026, 5, 10),
+        1
+    );
+    UUID invoiceId = invoiceFor(purchase, 0).getId();
+
+    cardService.deactivate(card.getId());
+    cardService.delete(card.getId());
+
+    assertThat(cardService.findAll()).isEmpty();
+    assertThat(cardService.findById(card.getId()).orElseThrow()
+        .getStatus()).isEqualTo(CreditCardStatus.DELETED);
+    assertThat(invoiceRepository.findById(invoiceId)).isPresent();
+
+    assertThatThrownBy(() -> cardService.activate(card.getId()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Deleted credit cards cannot be reactivated");
   }
 
   @Test

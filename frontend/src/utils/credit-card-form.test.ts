@@ -174,6 +174,10 @@ test('mapeia o 409 da atualização para o bloqueio de fechamento', () => {
     getCreditCardErrorMessage({ status: 409 }, 'reactivate'),
     /não pôde ser reativado/,
   );
+  assert.match(
+    getCreditCardErrorMessage({ status: 409 }, 'delete'),
+    /não pôde ser excluído/,
+  );
 });
 
 test('mapeia os demais status e preserva mensagens de conexão', () => {

@@ -30,6 +30,7 @@ import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
 import type { CreditCardInvoice } from '@/services/credit-card-invoices-api';
 import {
   deactivateCreditCard as deactivateCreditCardRequest,
+  deleteCreditCard as deleteCreditCardRequest,
   reactivateCreditCard as reactivateCreditCardRequest,
   type CreditCard,
 } from '@/services/credit-cards-api';
@@ -143,9 +144,13 @@ function CreditCardsMobileScreen() {
   );
   const [reactivating, setReactivating] = useState(false);
   const [reactivationError, setReactivationError] = useState('');
+  const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deletionError, setDeletionError] = useState('');
   const mutationInProgressRef = useRef(false);
 
-  const actionsDisabled = loading || deactivating || reactivating;
+  const actionsDisabled =
+    loading || deactivating || reactivating || deleting;
 
   const activeCards = useMemo(
     () => cards.filter((card) => card.status === 'ACTIVE'),
@@ -189,6 +194,10 @@ function CreditCardsMobileScreen() {
 
   const reactivatingCard = reactivatingCardId
     ? cards.find((card) => card.id === reactivatingCardId)
+    : undefined;
+
+  const deletingCard = deletingCardId
+    ? cards.find((card) => card.id === deletingCardId)
     : undefined;
 
   function openCreateForm() {
@@ -318,6 +327,56 @@ function CreditCardsMobileScreen() {
 
     setReactivatingCardId(null);
     setReactivationError('');
+  }
+
+  function openDeletionModal(card: CreditCard) {
+    if (actionsDisabled || mutationInProgressRef.current) {
+      return;
+    }
+
+    setDeletionError('');
+    setDeletingCardId(card.id);
+  }
+
+  async function confirmDeletion() {
+    if (!deletingCardId || mutationInProgressRef.current) {
+      return;
+    }
+
+    const cardId = deletingCardId;
+
+    mutationInProgressRef.current = true;
+    setDeleting(true);
+    setDeletionError('');
+
+    try {
+      await deleteCreditCardRequest(cardId);
+      setDeletingCardId(null);
+
+      await refreshCreditCards().catch(() => {
+        // A mutação já foi confirmada pelo backend.
+      });
+
+      showToast({
+        variant: 'success',
+        title: 'Cartão excluído',
+        message: 'O histórico e as faturas continuam disponíveis.',
+      });
+    } catch (cause) {
+      setDeletionError(getCreditCardErrorMessage(cause, 'delete'));
+    } finally {
+      mutationInProgressRef.current = false;
+      setDeleting(false);
+    }
+  }
+
+  function closeDeletionModal() {
+    if (deleting) {
+      return;
+    }
+
+    setDeletingCardId(null);
+    setDeletionError('');
   }
 
   return (
@@ -470,6 +529,7 @@ function CreditCardsMobileScreen() {
                 onEdit={() => openEditForm(card)}
                 onDeactivate={() => openDeactivationModal(card)}
                 onReactivate={() => openReactivationModal(card)}
+                onDelete={() => openDeletionModal(card)}
               />
             ))}
           </View>
@@ -550,6 +610,22 @@ function CreditCardsMobileScreen() {
         onConfirm={() => void confirmReactivation()}
         onCancel={closeReactivationModal}
       />
+
+      <ConfirmDialog
+        visible={Boolean(deletingCard)}
+        title="Excluir cartão?"
+        message={
+          deletingCard
+            ? `Deseja excluir "${deletingCard.name}"? O cartão será removido da lista e não poderá ser reativado. O histórico e as faturas continuam disponíveis para consulta.`
+            : ''
+        }
+        confirmLabel="Excluir"
+        tone="danger"
+        loading={deleting}
+        error={deletionError}
+        onConfirm={() => void confirmDeletion()}
+        onCancel={closeDeletionModal}
+      />
     </SafeAreaView>
   );
 }
@@ -564,6 +640,7 @@ function CreditCardItem({
   onEdit,
   onDeactivate,
   onReactivate,
+  onDelete,
 }: {
   card: CreditCard;
   invoices: CreditCardInvoice[];
@@ -574,6 +651,7 @@ function CreditCardItem({
   onEdit: () => void;
   onDeactivate: () => void;
   onReactivate: () => void;
+  onDelete: () => void;
 }) {
   const isActive = card.status === 'ACTIVE';
   const invoice = getHighlightedInvoice(invoices);
@@ -742,20 +820,37 @@ function CreditCardItem({
             </Pressable>
           </>
         ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Reativar ${card.name}`}
-            accessibilityState={{ disabled: actionsDisabled }}
-            disabled={actionsDisabled}
-            onPress={onReactivate}
-            style={({ pressed }) => [
-              styles.secondaryButton,
-              pressed && !actionsDisabled && styles.pressed,
-              actionsDisabled && styles.disabledButton,
-            ]}
-          >
-            <Text style={styles.secondaryButtonText}>Reativar</Text>
-          </Pressable>
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Reativar ${card.name}`}
+              accessibilityState={{ disabled: actionsDisabled }}
+              disabled={actionsDisabled}
+              onPress={onReactivate}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                pressed && !actionsDisabled && styles.pressed,
+                actionsDisabled && styles.disabledButton,
+              ]}
+            >
+              <Text style={styles.secondaryButtonText}>Reativar</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Excluir ${card.name}`}
+              accessibilityState={{ disabled: actionsDisabled }}
+              disabled={actionsDisabled}
+              onPress={onDelete}
+              style={({ pressed }) => [
+                styles.deactivateButton,
+                pressed && !actionsDisabled && styles.pressed,
+                actionsDisabled && styles.disabledButton,
+              ]}
+            >
+              <Text style={styles.deactivateButtonText}>Excluir</Text>
+            </Pressable>
+          </>
         )}
       </View>
     </View>
