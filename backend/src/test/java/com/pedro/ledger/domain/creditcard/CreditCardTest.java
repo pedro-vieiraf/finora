@@ -91,6 +91,55 @@ class CreditCardTest {
   }
 
   @Test
+  void shouldDeleteInactiveCard() {
+    CreditCard card = openCard("1000.00");
+
+    card.deactivate();
+    card.delete();
+
+    assertThat(card.getStatus()).isEqualTo(CreditCardStatus.DELETED);
+  }
+
+  @Test
+  void shouldNotDeleteActiveCard() {
+    CreditCard card = openCard("1000.00");
+
+    assertThatThrownBy(card::delete)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Only inactive credit cards can be deleted");
+
+    assertThat(card.getStatus()).isEqualTo(CreditCardStatus.ACTIVE);
+  }
+
+  @Test
+  void shouldNotReactivateDeletedCard() {
+    CreditCard card = openCard("1000.00");
+
+    card.deactivate();
+    card.delete();
+
+    assertThatThrownBy(card::activate)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Deleted credit cards cannot be reactivated");
+
+    assertThat(card.getStatus()).isEqualTo(CreditCardStatus.DELETED);
+  }
+
+  @Test
+  void shouldNotDeactivateDeletedCard() {
+    CreditCard card = openCard("1000.00");
+
+    card.deactivate();
+    card.delete();
+
+    assertThatThrownBy(card::deactivate)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Deleted credit cards cannot be deactivated");
+
+    assertThat(card.getStatus()).isEqualTo(CreditCardStatus.DELETED);
+  }
+
+  @Test
   void shouldRejectInvalidCardData() {
     assertThatThrownBy(() -> CreditCard.open(
         " ",

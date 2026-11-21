@@ -5,5 +5,6 @@ package com.pedro.ledger.domain.creditcard;
  */
 public enum CreditCardStatus {
   ACTIVE,
-  INACTIVE
+  INACTIVE,
+  DELETED
 }

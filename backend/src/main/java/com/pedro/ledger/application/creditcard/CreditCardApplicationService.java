@@ -118,6 +118,24 @@ public class CreditCardApplicationService {
     creditCardRepository.save(card);
   }
 
+  /**
+   * Deletes an inactive credit card.
+   *
+   * <p>The card is kept in storage only so historical invoices and purchases
+   * can reference it; it is hidden from listings and can no longer be used or
+   * reactivated.
+   *
+   * @param id card identifier
+   */
+  @Transactional
+  public void delete(UUID id) {
+    CreditCard card = getByIdForUpdateOrThrow(id);
+
+    card.delete();
+
+    creditCardRepository.save(card);
+  }
+
   @Transactional
   public CreditCard activate(UUID id) {
     CreditCard card = getByIdForUpdateOrThrow(id);

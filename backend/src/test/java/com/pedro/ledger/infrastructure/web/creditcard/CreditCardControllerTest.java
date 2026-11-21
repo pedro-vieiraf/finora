@@ -2,9 +2,12 @@ package com.pedro.ledger.infrastructure.web.creditcard;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +19,7 @@ import com.pedro.ledger.application.creditcard.CreditCardPurchaseApplicationServ
 import com.pedro.ledger.domain.creditcard.CreditCard;
 import com.pedro.ledger.domain.creditcard.CreditCardInvoice;
 import com.pedro.ledger.domain.creditcard.CreditCardInvoicePayment;
+import com.pedro.ledger.domain.creditcard.CreditCardNotFoundException;
 import com.pedro.ledger.domain.creditcard.CreditCardPurchase;
 import com.pedro.ledger.domain.money.Money;
 import java.math.BigDecimal;
@@ -320,5 +324,49 @@ class CreditCardControllerTest {
                     """.formatted(accountId))
         )
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void shouldDeleteCardPermanently() throws Exception {
+    UUID id = UUID.randomUUID();
+
+    doNothing()
+        .when(cardService)
+        .delete(id);
+
+    mockMvc.perform(delete("/credit-cards/{id}/permanent", id))
+        .andExpect(status().isNoContent());
+
+    verify(cardService).delete(id);
+  }
+
+  @Test
+  void shouldReturnNotFoundWhenDeletingUnknownCard() throws Exception {
+    UUID id = UUID.randomUUID();
+
+    doThrow(new CreditCardNotFoundException())
+        .when(cardService)
+        .delete(id);
+
+    mockMvc.perform(delete("/credit-cards/{id}/permanent", id))
+        .andExpect(status().isNotFound());
+
+    verify(cardService).delete(id);
+  }
+
+  @Test
+  void shouldReturnConflictWhenDeletingActiveCard() throws Exception {
+    UUID id = UUID.randomUUID();
+
+    doThrow(new IllegalStateException(
+        "Only inactive credit cards can be deleted"
+    ))
+        .when(cardService)
+        .delete(id);
+
+    mockMvc.perform(delete("/credit-cards/{id}/permanent", id))
+        .andExpect(status().isConflict());
+
+    verify(cardService).delete(id);
   }
 }

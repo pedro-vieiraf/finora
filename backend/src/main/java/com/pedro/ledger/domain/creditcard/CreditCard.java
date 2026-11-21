@@ -240,7 +240,32 @@ public class CreditCard {
       throw new IllegalStateException("Credit card is already inactive");
     }
 
+    if (status == CreditCardStatus.DELETED) {
+      throw new IllegalStateException(
+          "Deleted credit cards cannot be deactivated"
+      );
+    }
+
     status = CreditCardStatus.INACTIVE;
+  }
+
+  /**
+   * Deletes the card.
+   *
+   * <p>Deletion is only allowed for inactive cards. A deleted card is kept
+   * only so historical invoices and purchases can still reference it, and it
+   * is no longer listed.
+   *
+   * @throws IllegalStateException if the card is not inactive
+   */
+  public void delete() {
+    if (status != CreditCardStatus.INACTIVE) {
+      throw new IllegalStateException(
+          "Only inactive credit cards can be deleted"
+      );
+    }
+
+    status = CreditCardStatus.DELETED;
   }
 
   /**
@@ -249,6 +274,12 @@ public class CreditCard {
   public void activate() {
     if (status == CreditCardStatus.ACTIVE) {
       throw new IllegalStateException("Credit card is already active");
+    }
+
+    if (status == CreditCardStatus.DELETED) {
+      throw new IllegalStateException(
+          "Deleted credit cards cannot be reactivated"
+      );
     }
 
     status = CreditCardStatus.ACTIVE;
