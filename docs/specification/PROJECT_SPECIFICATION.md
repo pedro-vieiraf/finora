@@ -1,4 +1,6 @@
-# Ledger — Project & Domain Specification
+# Finora — Project & Domain Specification
+
+> Design specification. This document captures requirements and planned behavior. See the [project README](../../README.md) for the features available today.
 
 **Version:** 1.0  
 **Status:** Draft  
@@ -8,13 +10,13 @@
 
 # 1. Project Vision
 
-Ledger is a personal finance management application designed to centralize
+Finora is a personal finance management application designed to centralize
 and organize the user's financial life in a single system.
 
 The primary goal is to provide a clear and reliable view of the user's
 financial situation while minimizing the amount of manual data entry required.
 
-Ledger should allow the user to understand:
+Finora should allow the user to understand:
 
 - How much money they currently have.
 - Where their money is.
@@ -39,7 +41,7 @@ software engineering portfolio project.
 
 ## 2.1 Primary Goals
 
-Ledger should:
+Finora should:
 
 - Centralize financial information from multiple accounts and institutions.
 - Track income, expenses, transfers, purchases, payments, and other
@@ -88,7 +90,7 @@ The system should avoid unnecessary complexity and premature optimization.
 
 ## 3.1 Initial Scope
 
-The initial version of Ledger will focus on:
+The initial version of Finora will focus on:
 
 - Financial accounts.
 - Transactions.
@@ -370,7 +372,7 @@ An installment is not an independent purchase.
 
 # 6. Recurring Transactions
 
-Ledger must support recurring financial operations.
+Finora must support recurring financial operations.
 
 Examples:
 
@@ -412,7 +414,7 @@ The exact recurrence rule model is TBD.
 
 # 7. Refunds and Cancellations
 
-Ledger must distinguish between cancellations and refunds.
+Finora must distinguish between cancellations and refunds.
 
 ## 7.1 Cancellation
 
@@ -467,7 +469,7 @@ the appropriate account balance.
 
 ## 8.2 Calculated Balance
 
-Ledger should be capable of calculating an account balance based on the
+Finora should be capable of calculating an account balance based on the
 financial movements recorded by the system.
 
 Conceptually:
@@ -492,7 +494,7 @@ externally reported balance from the financial institution.
 Example:
 
 ```text
-Ledger calculated balance:
+Finora calculated balance:
 R$ 5,000
 
 Bank reported balance:
@@ -501,7 +503,7 @@ R$ 5,000
 
 Ideally these values should match.
 
-However, Ledger must not assume that they will always be identical.
+However, Finora must not assume that they will always be identical.
 
 If a discrepancy exists:
 
@@ -594,7 +596,7 @@ scope.
 
 # 11. Audit & Observability
 
-Ledger must maintain an audit history for important financial operations.
+Finora must maintain an audit history for important financial operations.
 
 The audit system should be useful for understanding how significant
 changes occurred without becoming an unnecessarily complex event logging
@@ -657,7 +659,7 @@ strategy are TBD.
 
 # 13. Background Processing
 
-Ledger must not depend on the user opening the application for important
+Finora must not depend on the user opening the application for important
 background operations.
 
 Future background operations may include:
@@ -696,7 +698,7 @@ The initial implementation is TBD.
 
 # 15. Financial Reporting
 
-Ledger should provide financial insights and visualizations.
+Finora should provide financial insights and visualizations.
 
 Potential reports include:
 
@@ -800,7 +802,7 @@ during domain modeling.
 
 # 19. Security
 
-Although Ledger is initially a personal application, security remains an
+Although Finora is initially a personal application, security remains an
 important engineering concern because the system handles sensitive financial
 information.
 
@@ -992,7 +994,7 @@ features, rather than being prematurely fixed in the current specification.
 
 # 24. Specification Status
 
-This document represents the current understanding of the Ledger project.
+This document represents the current understanding of the Finora project.
 
 The specification is a living document and may evolve as domain modeling,
 implementation, testing, and real-world usage reveal new requirements or

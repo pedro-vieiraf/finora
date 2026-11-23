@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Represents a financial transaction within the Ledger.
+ * Represents a financial transaction within the Finora.
  */
 public class Transaction {
 

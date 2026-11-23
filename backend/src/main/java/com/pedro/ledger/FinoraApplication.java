@@ -5,18 +5,18 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Main entry point for the Ledger application.
+ * Main entry point for the Finora application.
  */
 @SpringBootApplication
 @EnableScheduling
-public class LedgerApplication {
+public class FinoraApplication {
 
   /**
-   * Starts the Ledger application.
+   * Starts the Finora application.
    *
    * @param args application command-line arguments
    */
   public static void main(String[] args) {
-    SpringApplication.run(LedgerApplication.class, args);
+    SpringApplication.run(FinoraApplication.class, args);
   }
 }

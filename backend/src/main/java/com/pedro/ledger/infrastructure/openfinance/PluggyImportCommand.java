@@ -1,6 +1,6 @@
 package com.pedro.ledger.infrastructure.openfinance;
 
-import com.pedro.ledger.LedgerApplication;
+import com.pedro.ledger.FinoraApplication;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -82,7 +82,7 @@ public final class PluggyImportCommand {
         return;
       }
 
-      try (var context = new SpringApplicationBuilder(LedgerApplication.class)
+      try (var context = new SpringApplicationBuilder(FinoraApplication.class)
           .web(WebApplicationType.NONE)
           .initializers(application -> application.addBeanFactoryPostProcessor(factory -> {
             if (factory instanceof BeanDefinitionRegistry registry) {

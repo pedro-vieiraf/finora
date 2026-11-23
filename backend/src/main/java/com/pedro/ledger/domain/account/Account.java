@@ -4,7 +4,7 @@ import com.pedro.ledger.domain.money.Money;
 import java.util.UUID;
 
 /**
- * Represents a bank account within the Ledger.
+ * Represents a bank account within the Finora.
  */
 public class Account {
 
