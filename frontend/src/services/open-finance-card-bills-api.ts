@@ -33,6 +33,7 @@ export type OpenFinanceCardForecast = {
   total: number;
   currency: string;
   estimated?: boolean;
+  entries?: OpenFinanceBillEntry[];
 };
 
 export type OpenFinanceCard = {

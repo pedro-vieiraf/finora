@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -6,6 +7,7 @@ import {
   View,
 } from 'react-native';
 
+import { InvoiceEvolutionDetails } from '@/components/dashboard/invoice-evolution-details';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
 import {
   mobileColors,
@@ -57,18 +59,12 @@ function monthLabel(key: string) {
   return MONTH_SHORT[month - 1] ?? key;
 }
 
-/**
- * Evolução das faturas do Dashboard mobile.
- *
- * As barras horizontais mostram o `remainingAmount` das faturas pendentes de
- * cartões ativos por mês de vencimento, sem rolagem horizontal. Nenhuma compra
- * futura é projetada; meses sem faturas só aparecem zerados quando a consulta
- * de faturas terminou com sucesso.
- */
 export function MobileDashboardInvoiceEvolution() {
   const { hidden } = usePrivacy();
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const { cards: connectedCards } = useOpenFinanceCardBills();
   const {
+    entries,
     evolution,
     evolutionPeriod,
     hasEvolutionData,
@@ -83,6 +79,11 @@ export function MobileDashboardInvoiceEvolution() {
     (maximum, point) => Math.max(maximum, point.total),
     0,
   );
+
+  const selectedPoint = evolution.find((point) => point.key === selectedMonth);
+  function selectMonth(month: string) {
+    setSelectedMonth((current) => current === month ? null : month);
+  }
 
   const isInitialLoading = loading && evolution.length === 0;
   const isRefreshing = loading && evolution.length > 0;
@@ -149,7 +150,6 @@ export function MobileDashboardInvoiceEvolution() {
         </View>
       ) : hasEvolutionData ? (
         <View
-          accessibilityRole="image"
           accessibilityLabel={`Gráfico de evolução das faturas: ${evolutionPeriod}`}
           style={styles.panel}
         >
@@ -166,11 +166,16 @@ export function MobileDashboardInvoiceEvolution() {
                 maxValue > 0 ? Math.min(point.total / maxValue, 1) : 0;
 
               return (
-                <View
+                <Pressable
                   key={point.key}
-                  style={[
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: selectedMonth === point.key }}
+                  accessibilityLabel={`Ver detalhes de ${monthLabel(point.key)}, ${maskMoney(formatCurrency(point.total), hidden)}`}
+                  onPress={() => selectMonth(point.key)}
+                  style={({ pressed }) => [
                     styles.barRow,
                     index > 0 && styles.barRowDivider,
+                    (pressed || selectedMonth === point.key) && styles.selectedBar,
                   ]}
                 >
                   <Text style={styles.monthLabel}>
@@ -197,11 +202,21 @@ export function MobileDashboardInvoiceEvolution() {
                   >
                     {maskMoney(formatCurrency(point.total), hidden)}
                   </Text>
-                </View>
+                </Pressable>
               );
             })}
           </View>
         </View>
+      ) : null}
+      {selectedPoint && hasEvolutionData ? (
+        <InvoiceEvolutionDetails
+          key={selectedPoint.key}
+          month={selectedPoint.key}
+          total={selectedPoint.total}
+          entries={entries}
+          connectedCards={connectedCards}
+          desktop={false}
+        />
       ) : null}
     </View>
   );
@@ -314,6 +329,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingVertical: 9,
+  },
+  selectedBar: {
+    backgroundColor: colors.surfaceMuted,
   },
   barRowDivider: {
     borderTopWidth: 1,
