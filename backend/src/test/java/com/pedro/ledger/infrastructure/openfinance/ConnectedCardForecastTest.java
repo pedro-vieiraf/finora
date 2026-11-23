@@ -26,9 +26,12 @@ class ConnectedCardForecastTest {
         entry("history", "2026-11", "DEBIT", "12.00", null, null)
     ), "BRL", YearMonth.parse("2026-12"), YearMonth.parse("2027-05"));
 
-    assertThat(forecasts).containsExactly(
-        new ConnectedCardBills.Forecast("2026-12", new BigDecimal("45.90"), "BRL", false),
-        new ConnectedCardBills.Forecast("2027-01", new BigDecimal("30.25"), "BRL", false));
+    assertThat(forecasts).extracting(ConnectedCardBills.Forecast::total)
+        .containsExactly(new BigDecimal("45.90"), new BigDecimal("30.25"));
+    assertThat(forecasts.getFirst().entries()).extracting(ConnectedCardBills.Entry::id)
+        .containsExactly("a", "refund");
+    assertThat(forecasts.getFirst().entries()).extracting(ConnectedCardBills.Entry::amount)
+        .containsExactly(new BigDecimal("50.10"), new BigDecimal("-4.20"));
   }
 
   @Test
@@ -42,11 +45,19 @@ class ConnectedCardForecastTest {
             new ConnectedCardBills.Entry("refund", null, "Estorno", "CREDIT",
                 BigDecimal.TEN, "BRL", 1, 3)
         ));
-    var december = new ConnectedCardBills.Forecast("2026-12", new BigDecimal("20.00"), "BRL", false);
+    var december = new ConnectedCardBills.Forecast("2026-12", new BigDecimal("20.00"), "BRL", false, List.of());
 
-    assertThat(ConnectedCardForecast.withInstallmentEstimates(List.of(december), latest,
-        YearMonth.parse("2026-12"), YearMonth.parse("2027-05"), LocalDate.parse("2026-11-22"), List.of())).containsExactly(
-        december, new ConnectedCardBills.Forecast("2027-01", new BigDecimal("14.25"), "BRL", true));
+    var mixed = ConnectedCardForecast.withInstallmentEstimates(List.of(december), latest,
+        YearMonth.parse("2026-12"), YearMonth.parse("2027-05"), LocalDate.parse("2026-11-22"), List.of());
+    assertThat(mixed).hasSize(2);
+    assertThat(mixed.getFirst()).isEqualTo(december);
+    var january = mixed.getLast();
+    assertThat(january.estimated()).isTrue();
+    assertThat(january.total()).isEqualByComparingTo("14.25");
+    assertThat(january.entries()).singleElement().satisfies(part -> {
+      assertThat(part.installmentNumber()).isEqualTo(4);
+      assertThat(part.totalInstallments()).isEqualTo(4);
+    });
     assertThat(ConnectedCardForecast.withInstallmentEstimates(List.of(), latest,
         YearMonth.parse("2026-12"), YearMonth.parse("2027-05"), LocalDate.parse("2026-11-22"), List.of()))
         .extracting(ConnectedCardBills.Forecast::month).containsExactly("2026-12", "2027-01");
@@ -63,8 +74,10 @@ class ConnectedCardForecastTest {
 
     assertThat(ConnectedCardForecast.withInstallmentEstimates(List.of(), latest,
         YearMonth.parse("2026-12"), YearMonth.parse("2027-05"),
-        LocalDate.parse("2026-11-22"), List.of(charge, unknown))).containsExactly(
-            new ConnectedCardBills.Forecast("2026-12", new BigDecimal("20.00"), "BRL", true));
+        LocalDate.parse("2026-11-22"), List.of(charge, unknown))).singleElement().satisfies(forecast -> {
+      assertThat(forecast.total()).isEqualByComparingTo("20.00");
+      assertThat(forecast.entries()).extracting(ConnectedCardBills.Entry::id).containsExactly("subscription");
+    });
   }
 
   private static PluggyClient.Transaction entry(

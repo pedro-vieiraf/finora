@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.TreeMap;
@@ -23,7 +24,7 @@ final class ConnectedCardForecast {
     }
 
     var previousMonth = YearMonth.from(latest.dueDate());
-    var estimates = new TreeMap<YearMonth, BigDecimal>();
+    var estimates = new TreeMap<YearMonth, List<ConnectedCardBills.Entry>>();
     for (var entry : latest.entries()) {
       if (!"DEBIT".equals(entry.direction()) || entry.amount() == null
           || !latest.currency().equals(entry.currency())
@@ -39,7 +40,10 @@ final class ConnectedCardForecast {
           break;
         }
         if (!month.isBefore(firstMonth)) {
-          estimates.merge(month, entry.amount().abs(), BigDecimal::add);
+          estimates.computeIfAbsent(month, key -> new ArrayList<>()).add(
+              new ConnectedCardBills.Entry(entry.id(), entry.date(), entry.description(), entry.direction(),
+                  entry.amount().abs(), entry.currency(), entry.installmentNumber() + offset,
+                  entry.totalInstallments()));
         }
       }
     }
@@ -49,7 +53,8 @@ final class ConnectedCardForecast {
         && today.isBefore(latest.closingDate().plusMonths(1))) {
       for (var entry : transactions) {
         if (isRecentUnbilledSingleCharge(entry, latest, today)) {
-          estimates.merge(nextCycle, entry.amount().abs(), BigDecimal::add);
+          estimates.computeIfAbsent(nextCycle, key -> new ArrayList<>()).add(
+              forecastEntry(entry, entry.amount().abs(), latest.currency()));
         }
       }
     }
@@ -58,8 +63,8 @@ final class ConnectedCardForecast {
     for (var forecast : reported) {
       forecasts.put(forecast.month(), forecast);
     }
-    estimates.forEach((month, total) -> forecasts.putIfAbsent(month.toString(),
-        new ConnectedCardBills.Forecast(month.toString(), total, latest.currency(), true)));
+    estimates.forEach((month, entries) -> forecasts.putIfAbsent(month.toString(),
+        forecast(month, latest.currency(), true, entries)));
     return List.copyOf(forecasts.values());
   }
 
@@ -85,7 +90,7 @@ final class ConnectedCardForecast {
     if (currency == null) {
       return List.of();
     }
-    var totals = new TreeMap<YearMonth, BigDecimal>();
+    var entriesByMonth = new TreeMap<YearMonth, List<ConnectedCardBills.Entry>>();
     for (var transaction : transactions) {
       var metadata = transaction.creditCardMetadata();
       if (metadata == null || metadata.billId() != null || metadata.billForecastDate() == null
@@ -110,13 +115,30 @@ final class ConnectedCardForecast {
       if (amount == null) {
         continue;
       }
-      if ("DEBIT".equals(transaction.type())) {
-        totals.merge(month, amount.abs(), BigDecimal::add);
-      } else if ("CREDIT".equals(transaction.type())) {
-        totals.merge(month, amount.abs().negate(), BigDecimal::add);
+      if ("DEBIT".equals(transaction.type()) || "CREDIT".equals(transaction.type())) {
+        var signedAmount = "DEBIT".equals(transaction.type()) ? amount.abs() : amount.abs().negate();
+        entriesByMonth.computeIfAbsent(month, key -> new ArrayList<>())
+            .add(forecastEntry(transaction, signedAmount, currency));
       }
     }
-    return totals.entrySet().stream().map(entry -> new ConnectedCardBills.Forecast(
-        entry.getKey().toString(), entry.getValue().max(BigDecimal.ZERO), currency, false)).toList();
+    return entriesByMonth.entrySet().stream()
+        .map(entry -> forecast(entry.getKey(), currency, false, entry.getValue())).toList();
+  }
+
+  private static ConnectedCardBills.Entry forecastEntry(
+      PluggyClient.Transaction transaction, BigDecimal amount, String currency
+  ) {
+    var metadata = transaction.creditCardMetadata();
+    return new ConnectedCardBills.Entry(transaction.id(), transaction.date(),
+        transaction.description(), transaction.type(), amount, currency,
+        metadata.installmentNumber(), metadata.totalInstallments());
+  }
+
+  private static ConnectedCardBills.Forecast forecast(
+      YearMonth month, String currency, boolean estimated, List<ConnectedCardBills.Entry> entries
+  ) {
+    var total = entries.stream().map(ConnectedCardBills.Entry::amount)
+        .reduce(BigDecimal.ZERO, BigDecimal::add).max(BigDecimal.ZERO);
+    return new ConnectedCardBills.Forecast(month.toString(), total, currency, estimated, List.copyOf(entries));
   }
 }
