@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -108,57 +108,64 @@ export default function NewTransactionScreen() {
     (account) => account.id === destinationAccountId,
   );
 
-  async function loadOptions() {
-    setLoadingOptions(true);
-    setLoadError(null);
+  const loadOptions = useCallback((signal?: AbortSignal) => {
+    return Promise.all([getAccounts(), getCategories()]).then(
+      ([loadedAccounts, loadedCategories]) => {
+        if (signal?.aborted) return;
 
-    try {
-      const [loadedAccounts, loadedCategories] = await Promise.all([
-        getAccounts(),
-        getCategories(),
-      ]);
+        setAccounts(loadedAccounts);
+        setCategories(loadedCategories);
 
-      setAccounts(loadedAccounts);
-      setCategories(loadedCategories);
+        setAccountId((current) =>
+          loadedAccounts.some(
+            (account) =>
+              account.id === current && account.status === 'ACTIVE',
+          )
+            ? current
+            : loadedAccounts.find((account) => account.status === 'ACTIVE')
+                ?.id ?? '',
+        );
 
-      setAccountId((current) =>
-        loadedAccounts.some(
-          (account) =>
-            account.id === current && account.status === 'ACTIVE',
-        )
-          ? current
-          : loadedAccounts.find((account) => account.status === 'ACTIVE')
-              ?.id ?? '',
-      );
+        setDestinationAccountId((current) =>
+          loadedAccounts.some(
+            (account) =>
+              account.id === current && account.status === 'ACTIVE',
+          )
+            ? current
+            : '',
+        );
 
-      setDestinationAccountId((current) =>
-        loadedAccounts.some(
-          (account) =>
-            account.id === current && account.status === 'ACTIVE',
-        )
-          ? current
-          : '',
-      );
+        setCategoryId((current) =>
+          loadedCategories.some((category) => category.id === current)
+            ? current
+            : '',
+        );
+      },
+      (error: unknown) => {
+        if (signal?.aborted) return;
 
-      setCategoryId((current) =>
-        loadedCategories.some((category) => category.id === current)
-          ? current
-          : '',
-      );
-    } catch (error) {
-      setLoadError(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível carregar contas e categorias.',
-      );
-    } finally {
-      setLoadingOptions(false);
-    }
-  }
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível carregar contas e categorias.',
+        );
+      },
+    ).finally(() => {
+      if (!signal?.aborted) setLoadingOptions(false);
+    });
+  }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+    void loadOptions(controller.signal);
+    return () => controller.abort();
+  }, [loadOptions]);
+
+  function retryLoadOptions() {
+    setLoadingOptions(true);
+    setLoadError(null);
     void loadOptions();
-  }, []);
+  }
 
   function changeType(nextType: FormType) {
     setFormFeedback(null);
@@ -375,7 +382,7 @@ export default function NewTransactionScreen() {
 
         <Pressable
           style={styles.primaryButton}
-          onPress={() => void loadOptions()}
+          onPress={retryLoadOptions}
         >
           <Text style={styles.primaryButtonText}>Tentar novamente</Text>
         </Pressable>
