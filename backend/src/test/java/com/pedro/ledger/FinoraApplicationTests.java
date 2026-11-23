@@ -9,7 +9,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Testcontainers
 @SpringBootTest
-class LedgerApplicationTests {
+class FinoraApplicationTests {
 
   @Container
   @ServiceConnection

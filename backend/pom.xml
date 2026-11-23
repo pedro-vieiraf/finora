@@ -15,14 +15,14 @@
   </parent>
 
   <groupId>com.pedro</groupId>
-  <artifactId>ledger</artifactId>
+  <artifactId>finora</artifactId>
   <version>0.0.1-SNAPSHOT</version>
 
-  <name>ledger</name>
+  <name>Finora</name>
 
   <description>
-    Personal finance management application for tracking accounts,
-    transactions, credit cards, investments, and financial insights.
+    Personal finance management for manual accounts, credit cards,
+    recurring transactions, and Open Finance bank connections.
   </description>
 
   <properties>
