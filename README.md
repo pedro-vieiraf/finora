@@ -2,7 +2,9 @@
 
 Finora is a personal finance application for tracking bank accounts, cash, transactions, recurring commitments, and credit cards. It combines accounts you manage yourself with Open Finance accounts synchronized through Pluggy. The Expo app is designed for daily use on a phone and also includes a desktop web layout.
 
-## What you can do
+**Latest release · [v2.1.0](https://github.com/pedro-vieiraf/finora/tree/v2.1.0)**
+
+## Features
 
 | Area | Features |
 | --- | --- |
@@ -42,24 +44,6 @@ The API listens on port 8080. PostgreSQL stores its data in a named Docker volum
 
 For an existing installation, keep using its current Compose project name. The checkout directory normally determines that name, so changing the folder can cause Compose to select a different database volume. The GitHub rename only requires updating the remote URL.
 
-### Use an existing Neon database
-
-Finora connects to Neon from Spring Boot through PostgreSQL JDBC. The mobile app calls the Finora REST API. Host the Java API separately to make it reachable outside your local network.
-
-Authenticate with `neon login`, link the checkout to your Neon project and branch, and run `neon deploy` from the repository root. Keep the generated `.env.local` or `.env` private. The launcher uses the pooled `DATABASE_URL` with verified TLS. [Neon connection guide](https://neon.com/docs/connect/connect-from-any-app)
-
-```bash
-npm ci
-npm --prefix frontend ci
-npm run build
-# Generate a private access key and set FINORA_API_TOKEN before starting.
-SERVER_PORT=8081 npm run start:neon
-```
-
-The build packages the Spring Boot JAR and exports the Expo JavaScript bundle for Android. Supply the Java API address through the frontend configuration below before creating a bundle for a device.
-
-The `neon` profile disables Hibernate schema changes and SQL initialization. The target database must already contain the Finora schema. On a Java host, you can also set `SPRING_PROFILES_ACTIVE=neon` and supply `SPRING_DATASOURCE_URL` as a JDBC URL, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` through the host's environment and secret settings.
-
 ### Start the app
 
 Create `frontend/.env` for your own checkout:
@@ -78,6 +62,48 @@ npx expo start
 
 Open the project on your device or press `w` in the Expo terminal to run the web layout. Expo public variables are bundled into the client. Keep provider credentials on the backend.
 
+## Hosted deployment
+
+Finora's hosted configuration uses an Android APK, a containerized Spring Boot API on Render, and PostgreSQL on Neon.
+
+```text
+Android app ── HTTPS ──> Spring Boot API (Render) ── verified TLS ──> PostgreSQL (Neon)
+                               │
+                               └──> Pluggy (bank transactions, balances, and card bills)
+```
+
+1. Provision a Neon database and initialize the Finora schema before deploying the API. The `neon` profile leaves schema initialization and Hibernate schema updates disabled. Existing installations can transfer their data and Open Finance links separately.
+2. Create a Docker Web Service on Render from `backend/` using its `Dockerfile`. Set the variables below in the service environment. The default TCP health check works with the protected API.
+3. Configure the Expo `preview` environment with your HTTPS API URL and build an APK. The profile enables Finora's sign-in screen. See the [Android build guide](frontend/README.md#build-an-android-apk).
+
+| Server variable | Purpose |
+| --- | --- |
+| `SPRING_PROFILES_ACTIVE` | Set to `neon` for the hosted database profile. |
+| `SPRING_DATASOURCE_URL` | Neon JDBC URL with verified TLS, such as `jdbc:postgresql://HOST/DATABASE?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory`. |
+| `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD` | Neon role and password. |
+| `SERVER_PORT` | HTTP port. Set to `10000` on Render. |
+| `FINORA_API_TOKEN` | Private 32-byte access key. Generate it with `openssl rand -hex 32`. |
+| `PLUGGY_CLIENT_ID` and `PLUGGY_CLIENT_SECRET` | Optional server-side credentials for the Pluggy integration. |
+| `LEDGER_OPEN_FINANCE_SCHEDULER_ENABLED` | Set to `true` to poll Pluggy for existing bank links. |
+
+The hosted API requires the access key as a bearer token. Enter the key on the Finora sign-in screen. The app keeps it in memory for the current session. The APK contains the public API URL and sign-in flag. Local Docker development can run without a key.
+
+On Render's free plan, the API can sleep between requests. A cold start can delay the first screen, and scheduled jobs run only while the API is awake. The Neon database persists independently. Pluggy controls how frequently it collects bank data, and Finora imports transactions once the provider makes them available.
+
+### Test the Neon connection locally
+
+Use the [Neon CLI](https://neon.com/docs/connect/connect-from-any-app) to link your own project and pull its connection variables. Keep the generated files private. With an initialized Neon database, run these commands from the repository root:
+
+```bash
+npm ci
+npm --prefix frontend ci
+npm run build
+# Supply FINORA_API_TOKEN to the process environment before starting.
+SERVER_PORT=8081 npm run start:neon
+```
+
+The build packages the Spring Boot JAR and exports an Android JavaScript bundle. The launcher reads the pooled `DATABASE_URL` and configures PostgreSQL JDBC with verified TLS.
+
 ## Optional Open Finance setup
 
 The manual workflow works with no Pluggy credentials. For Open Finance, start with a Pluggy application and provider-authorized connections. Collect the item ID and bank account ID for each account you want to import.
@@ -95,7 +121,7 @@ The manual workflow works with no Pluggy credentials. For Open Finance, start wi
    ```
 
 3. Run the command with `preview <from> <to> <name> <itemId> <accountId>`. Repeat the last three arguments for each account. Dates are inclusive UTC dates in `YYYY-MM-DD` format. Preview queries the provider without writing to PostgreSQL. Review suspected transfer pairs using `review` and pass explicit `--transfer` or `--separate` decisions where required.
-4. Run `confirm` with the reviewed arguments to write the initial import. The CLI needs a reachable, initialized PostgreSQL database and the appropriate Spring datasource configuration for your environment. Run the API first to initialize its schema.
+4. Run `confirm` with the reviewed arguments to write the initial import. The CLI needs a reachable, initialized PostgreSQL database and the appropriate Spring datasource configuration for your environment. For local Docker development, start the API once to initialize its schema.
 5. Add `LEDGER_OPEN_FINANCE_SCHEDULER_ENABLED=true` to the private Compose environment file and recreate the API service with `docker compose up -d --force-recreate app` from the repository root. The default sync delay is six hours after each run, with an initial one-minute delay after startup. Existing scheduler keys remain compatible with older installations.
 
 ## Architecture
@@ -115,6 +141,7 @@ The backend serializes concurrent balance mutations with database locks. Account
 
 | Route | Purpose |
 | --- | --- |
+| `GET /auth/session` | Verify the access key for a hosted session. |
 | `/accounts` | Create, list, and manage financial accounts. |
 | `/categories` | Manage transaction categories. |
 | `/transactions` | List transactions and create or manage manual entries. |
@@ -123,14 +150,6 @@ The backend serializes concurrent balance mutations with database locks. Account
 | `/credit-cards/{cardId}/purchases` | Manage manual purchases and installments. |
 | `/credit-cards/{cardId}/invoices` | Read manual card invoices and access their payments. |
 | `GET /credit-cards/open-finance/bills` | Read connected card bills and itemized forecasts. |
-
-### Protect a hosted API
-
-The Neon profile and Render require a private access key. Generate a random 32-byte key with `openssl rand -hex 32`, keep it in your password manager, and set it as `FINORA_API_TOKEN` in the Java server's secret environment. The service rejects requests without the matching bearer token. The key is shared by this single-user installation.
-
-In the Expo configuration, set `EXPO_PUBLIC_API_AUTH_REQUIRED=true` and point `EXPO_PUBLIC_API_URL` to the hosted API's HTTPS URL. If `EXPO_PUBLIC_API_URL_ANDROID` is set, update it too. Enter the private key on the Finora sign-in screen. The app keeps the key in memory for the current session. Expo public variables contain the API URL and the sign-in flag only.
-
-On Render, keep `SPRING_PROFILES_ACTIVE=neon`, set `SERVER_PORT=10000`, and supply the Neon JDBC URL, role, and password through the service environment. The default TCP health check works with the protected API. Local Docker development continues to work without a key unless one is configured.
 
 ## Testing
 
@@ -154,6 +173,7 @@ The automated checks cover financial rules, balance concurrency, REST and persis
 
 ## Releases and license
 
-[Version 2.0.0](https://github.com/pedro-vieiraf/finora/tree/v2.0.0) introduced Open Finance support. The current branch also includes the monthly invoice drill-down added after that release.
+- [v2.1.0](https://github.com/pedro-vieiraf/finora/tree/v2.1.0) adds authenticated hosting with Neon and Render, direct Android APK installation, and an itemized monthly invoice chart.
+- [v2.0.0](https://github.com/pedro-vieiraf/finora/tree/v2.0.0) introduced Open Finance via Pluggy, including bank imports, synchronization, and connected card forecasts.
 
 Finora is licensed under the [MIT License](LICENSE).
