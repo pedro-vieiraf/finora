@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import DateTimePicker from '@expo/ui/community/datetime-picker';
+import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import {
