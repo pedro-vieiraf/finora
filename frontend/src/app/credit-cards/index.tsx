@@ -13,6 +13,7 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import { MobileCreditCardFormModal } from '@/components/credit-cards/mobile-credit-card-form-modal';
 import { CreditCardUsageBar } from '@/components/credit-cards/credit-card-usage-bar';
+import { OpenFinanceCardItem } from '@/components/credit-cards/open-finance-card-bills';
 import { DesktopCreditCards } from '@/components/desktop/credit-cards/desktop-credit-cards';
 import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
@@ -27,6 +28,7 @@ import { useCreditCards } from '@/contexts/credit-cards-context';
 import { useFeedback } from '@/contexts/feedback-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
+import { useOpenFinanceCardBills } from '@/hooks/use-open-finance-card-bills';
 import type { CreditCardInvoice } from '@/services/credit-card-invoices-api';
 import {
   deactivateCreditCard as deactivateCreditCardRequest,
@@ -115,6 +117,8 @@ export default function CreditCardsScreen() {
 function CreditCardsMobileScreen() {
   const router = useRouter();
   const { hidden } = usePrivacy();
+  const { cards: connectedCards, loading: connectedLoading, error: connectedError } =
+    useOpenFinanceCardBills();
   const {
     cards,
     invoicesByCard,
@@ -379,6 +383,8 @@ function CreditCardsMobileScreen() {
     setDeletionError('');
   }
 
+  const totalCardCount = orderedCards.length + connectedCards.length;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
@@ -411,60 +417,64 @@ function CreditCardsMobileScreen() {
           </View>
         </View>
 
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <View style={styles.summaryIcon}>
-              <SymbolView
-                name={CARD_ICON}
-                size={20}
-                tintColor="#FFFFFF"
-              />
-            </View>
-            <Text style={styles.summaryLabel}>Limite total</Text>
-          </View>
+        {cards.length > 0 ? (
+          <>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryHeader}>
+                <View style={styles.summaryIcon}>
+                  <SymbolView
+                    name={CARD_ICON}
+                    size={20}
+                    tintColor="#FFFFFF"
+                  />
+                </View>
+                <Text style={styles.summaryLabel}>Limite dos cartões manuais</Text>
+              </View>
 
-          <Text
-            style={styles.summaryAmount}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {maskMoney(formatCurrency(summary.totalLimit), hidden)}
-          </Text>
-
-          <View style={styles.summaryStats}>
-            <View style={styles.summaryStat}>
-              <Text style={styles.summaryStatLabel}>Comprometido</Text>
-              <Text style={styles.summaryStatValue} numberOfLines={1}>
-                {maskMoney(formatCurrency(summary.committedLimit), hidden)}
-              </Text>
-            </View>
-
-            <View style={styles.summaryDivider} />
-
-            <View style={styles.summaryStat}>
-              <Text style={styles.summaryStatLabel}>Disponível</Text>
               <Text
-                style={[
-                  styles.summaryStatValue,
-                  styles.summaryStatValueAvailable,
-                ]}
+                style={styles.summaryAmount}
                 numberOfLines={1}
+                adjustsFontSizeToFit
               >
-                {maskMoney(formatCurrency(summary.availableLimit), hidden)}
+                {maskMoney(formatCurrency(summary.totalLimit), hidden)}
+              </Text>
+
+              <View style={styles.summaryStats}>
+                <View style={styles.summaryStat}>
+                  <Text style={styles.summaryStatLabel}>Comprometido</Text>
+                  <Text style={styles.summaryStatValue} numberOfLines={1}>
+                    {maskMoney(formatCurrency(summary.committedLimit), hidden)}
+                  </Text>
+                </View>
+
+                <View style={styles.summaryDivider} />
+
+                <View style={styles.summaryStat}>
+                  <Text style={styles.summaryStatLabel}>Disponível</Text>
+                  <Text
+                    style={[
+                      styles.summaryStatValue,
+                      styles.summaryStatValueAvailable,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {maskMoney(formatCurrency(summary.availableLimit), hidden)}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.summaryHint}>
+                {activeCards.length}{' '}
+                {activeCards.length === 1 ? 'cartão ativo' : 'cartões ativos'}.
+                Indicadores apenas informativos.
               </Text>
             </View>
-          </View>
 
-          <Text style={styles.summaryHint}>
-            {activeCards.length}{' '}
-            {activeCards.length === 1 ? 'cartão ativo' : 'cartões ativos'}.
-            Indicadores apenas informativos.
-          </Text>
-        </View>
-
-        <Text style={styles.summaryNote}>
-          O limite disponível de cada cartão é individual e vem do backend.
-        </Text>
+            <Text style={styles.summaryNote}>
+              O limite disponível de cada cartão é individual e vem do backend.
+            </Text>
+          </>
+        ) : null}
 
         {loadError ? (
           <InlineFeedback
@@ -488,8 +498,8 @@ function CreditCardsMobileScreen() {
           <View style={styles.sectionHeaderTexts}>
             <Text style={styles.sectionTitle}>Seus cartões</Text>
             <Text style={styles.sectionCaption}>
-              {orderedCards.length}{' '}
-              {orderedCards.length === 1 ? 'cartão' : 'cartões'}
+              {totalCardCount}{' '}
+              {totalCardCount === 1 ? 'cartão' : 'cartões'}
             </Text>
           </View>
 
@@ -510,13 +520,18 @@ function CreditCardsMobileScreen() {
           </Pressable>
         </View>
 
-        {loading ? (
+        {connectedError ? (
+          <InlineFeedback variant="warning" message="Não foi possível atualizar os cartões conectados." />
+        ) : null}
+
+        {(loading || connectedLoading) && connectedCards.length === 0 && orderedCards.length === 0 ? (
           <View style={styles.stateCard}>
             <ActivityIndicator size="small" color={colors.primary} />
             <Text style={styles.stateTitle}>Carregando cartões...</Text>
           </View>
-        ) : orderedCards.length > 0 ? (
+        ) : totalCardCount > 0 ? (
           <View style={styles.list}>
+            {connectedCards.map((card) => <OpenFinanceCardItem key={card.id} card={card} />)}
             {orderedCards.map((card) => (
               <CreditCardItem
                 key={card.id}

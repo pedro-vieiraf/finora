@@ -749,6 +749,7 @@ function AccountDetailsMobileScreen() {
                     direction,
                   );
                   const description =
+                    transaction.customDescription?.trim() ||
                     transaction.description?.trim() ||
                     getDefaultDescription(transaction.type);
                   const meta = getTransactionMeta(

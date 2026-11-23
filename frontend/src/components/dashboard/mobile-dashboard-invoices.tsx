@@ -8,7 +8,9 @@ import {
 import { useRouter } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
+import { OpenFinanceCardItem } from '@/components/credit-cards/open-finance-card-bills';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
+import { useOpenFinanceCardBills } from '@/hooks/use-open-finance-card-bills';
 import {
   mobileColors,
   mobileFont,
@@ -71,6 +73,8 @@ function pluralize(count: number, singular: string, plural: string) {
 export function MobileDashboardInvoices() {
   const router = useRouter();
   const { hidden } = usePrivacy();
+  const { cards: connectedCards, loading: connectedLoading, error: connectedError } =
+    useOpenFinanceCardBills();
   const {
     visibleEntries,
     hiddenInvoiceCount,
@@ -144,12 +148,20 @@ export function MobileDashboardInvoices() {
         />
       ) : null}
 
+      {connectedError ? (
+        <InlineFeedback variant="warning" message="Não foi possível atualizar as faturas conectadas." />
+      ) : null}
+
+      {connectedCards.map((card) => (
+        <OpenFinanceCardItem key={card.id} card={card} dashboard />
+      ))}
+
       {isInitialLoading ? (
         <View style={styles.stateCard}>
           <ActivityIndicator size="small" color={colors.primary} />
           <Text style={styles.stateText}>Carregando faturas...</Text>
         </View>
-      ) : isEmpty && !error ? (
+      ) : isEmpty && !error && !connectedLoading && !connectedError && connectedCards.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Nenhuma fatura pendente</Text>
           <Text style={styles.emptyText}>

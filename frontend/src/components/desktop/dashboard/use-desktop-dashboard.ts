@@ -10,7 +10,7 @@ import {
 import { useAccounts } from '@/contexts/accounts-context';
 import { useCreditCards } from '@/contexts/credit-cards-context';
 import { useRecurrences } from '@/contexts/recurrences-context';
-import { useTransactions } from '@/contexts/transactions-context';
+import { useOperationalTransactions } from '@/hooks/use-operational-transactions';
 import { getCategories, type Category } from '@/services/categories-api';
 import type { TransactionType } from '@/services/transactions-api';
 import {
@@ -86,7 +86,7 @@ export function useDesktopDashboard() {
     loading: transactionsLoading,
     error: transactionsError,
     refreshTransactions,
-  } = useTransactions();
+  } = useOperationalTransactions();
   const { refreshCreditCards } = useCreditCards();
   const { refreshRecurrences } = useRecurrences();
 
@@ -331,6 +331,7 @@ export function useDesktopDashboard() {
           return {
             id: transaction.id,
             description:
+              transaction.customDescription?.trim() ||
               transaction.description?.trim() ||
               getDefaultTransactionDescription(transaction.type),
             category,

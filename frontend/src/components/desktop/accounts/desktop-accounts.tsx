@@ -580,6 +580,9 @@ export function DesktopAccounts() {
                           <Text style={styles.accountMeta} numberOfLines={1}>
                             {formatAccountType(account.type)}
                           </Text>
+                          <Text style={styles.accountSource}>
+                            {account.source === 'OPEN_FINANCE' ? 'Open Finance' : 'Manual'}
+                          </Text>
                         </View>
                       </Pressable>
 
@@ -1077,6 +1080,18 @@ const styles = StyleSheet.create({
     color: desktopColors.textMuted,
     fontSize: 11,
     fontFamily: desktopFont,
+  },
+  accountSource: {
+    alignSelf: 'flex-start',
+    backgroundColor: desktopColors.surface,
+    color: desktopColors.textSecondary,
+    borderRadius: 8,
+    fontFamily: desktopFont,
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   statusBadge: {
     flexDirection: 'row',
