@@ -15,6 +15,7 @@ public class Transaction {
   private final TransactionType type;
   private TransactionStatus status;
   private String description;
+  private String customDescription;
   private Instant timestamp;
   private final TransactionSource source;
   private final UUID accountId;
@@ -320,6 +321,25 @@ public class Transaction {
       UUID recurrenceId,
       LocalDate occurrenceDate
   ) {
+    return restore(id, amount, type, status, description, timestamp, source, accountId,
+        destinationAccountId, categoryId, recurrenceId, occurrenceDate, null);
+  }
+
+  public static Transaction restore(
+      UUID id,
+      Money amount,
+      TransactionType type,
+      TransactionStatus status,
+      String description,
+      Instant timestamp,
+      TransactionSource source,
+      UUID accountId,
+      UUID destinationAccountId,
+      UUID categoryId,
+      UUID recurrenceId,
+      LocalDate occurrenceDate,
+      String customDescription
+  ) {
     validateId(id);
     validateAmount(amount);
     validateType(type);
@@ -334,7 +354,7 @@ public class Transaction {
 
     description = normalizeDescription(description);
 
-    return new Transaction(
+    Transaction transaction = new Transaction(
         id,
         amount,
         type,
@@ -348,6 +368,8 @@ public class Transaction {
         recurrenceId,
         occurrenceDate
     );
+    transaction.customDescription = customDescription;
+    return transaction;
   }
 
   /**
@@ -394,6 +416,22 @@ public class Transaction {
   public void changeDescription(String newDescription) {
     ensureActive();
     this.description = normalizeDescription(newDescription);
+  }
+
+  public void changeCustomDescription(String newDescription) {
+    ensureActive();
+    if (source != TransactionSource.OPEN_FINANCE) {
+      throw new IllegalStateException("Custom descriptions are only available for Open Finance transactions");
+    }
+    String normalized = normalizeDescription(newDescription);
+    if (normalized != null && normalized.length() > 160) {
+      throw new IllegalArgumentException("Custom description cannot exceed 160 characters");
+    }
+    customDescription = normalized;
+  }
+
+  public String getCustomDescription() {
+    return customDescription;
   }
 
   /**

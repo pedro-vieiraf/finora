@@ -156,6 +156,7 @@ public class CreditCardInvoiceApplicationService {
     Account account = accountRepository.findByIdForUpdate(accountId)
         .orElseThrow(() -> new AccountNotFoundException("Account not found"));
 
+    account.requireManualPostingAllowed();
     Money paymentAmount = Money.of(amount, invoice.getCurrency());
 
     if (!account.getBalance().currency().equals(invoice.getCurrency())) {

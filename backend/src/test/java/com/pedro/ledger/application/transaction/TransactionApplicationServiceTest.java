@@ -11,6 +11,8 @@ import static org.mockito.Mockito.when;
 import com.pedro.ledger.domain.account.Account;
 import com.pedro.ledger.domain.account.AccountNotFoundException;
 import com.pedro.ledger.domain.account.AccountRepository;
+import com.pedro.ledger.domain.account.AccountSource;
+import com.pedro.ledger.domain.account.AccountStatus;
 import com.pedro.ledger.domain.account.AccountType;
 import com.pedro.ledger.domain.category.Category;
 import com.pedro.ledger.domain.category.CategoryNotFoundException;
@@ -54,6 +56,94 @@ class TransactionApplicationServiceTest {
             accountRepository,
             categoryRepository
         );
+  }
+
+  @Test
+  void rejectsManualExpenseAndTransferToAConnectedAccountWithoutChangingBalances() {
+    Money balance = Money.of("100.00");
+    Account manual = Account.open("Manual", AccountType.CHECKING, balance);
+    Account connected = Account.restore(UUID.randomUUID(), "Connected", AccountType.CHECKING,
+        AccountStatus.ACTIVE, balance, AccountSource.OPEN_FINANCE);
+    when(accountRepository.findByIdForUpdate(manual.getId())).thenReturn(Optional.of(manual));
+    when(accountRepository.findByIdForUpdate(connected.getId())).thenReturn(Optional.of(connected));
+
+    assertThatThrownBy(() -> transactionApplicationService.create(Money.of("5.00"),
+        TransactionType.EXPENSE, "Manual expense", connected.getId(), null, null))
+        .isInstanceOf(IllegalStateException.class).hasMessageContaining("bank-sourced");
+    assertThatThrownBy(() -> transactionApplicationService.create(Money.of("5.00"),
+        TransactionType.TRANSFER, "Manual transfer", manual.getId(), connected.getId(), null))
+        .isInstanceOf(IllegalStateException.class).hasMessageContaining("bank-sourced");
+
+    assertThat(manual.getBalance()).isEqualTo(balance);
+    assertThat(connected.getBalance()).isEqualTo(balance);
+    verify(transactionRepository, never()).save(any());
+  }
+
+  @Test
+  void rejectsManualEditsAndDeletionOfAnImportedTransaction() {
+    Transaction transaction = Transaction.create(Money.of("5.00"), TransactionType.EXPENSE,
+        "Bank expense", Instant.now(), TransactionSource.OPEN_FINANCE, UUID.randomUUID(), null, null);
+    when(transactionRepository.findByIdForUpdate(transaction.getId()))
+        .thenReturn(Optional.of(transaction));
+
+    assertThatThrownBy(() -> transactionApplicationService.update(
+        transaction.getId(), null, "Changed", null, null))
+        .isInstanceOf(IllegalStateException.class).hasMessageContaining("edited or deleted manually");
+    assertThatThrownBy(() -> transactionApplicationService.delete(transaction.getId()))
+        .isInstanceOf(IllegalStateException.class).hasMessageContaining("edited or deleted manually");
+
+    assertThat(transaction.getDescription()).isEqualTo("Bank expense");
+    verify(transactionRepository, never()).save(any());
+    verify(transactionRepository, never()).delete(any());
+  }
+
+  @Test
+  void changesAndClearsOnlyTheLocalCategoryOfAnImportedTransaction() {
+    var amount = Money.of("5.00");
+    var date = Instant.parse("2026-10-01T12:00:00Z");
+    var transaction = Transaction.create(amount, TransactionType.EXPENSE,
+        "Bank expense", date, TransactionSource.OPEN_FINANCE, UUID.randomUUID(), null, null);
+    var category = Category.create("Mercado");
+    when(transactionRepository.findByIdForUpdate(transaction.getId()))
+        .thenReturn(Optional.of(transaction));
+    when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+    when(transactionRepository.save(transaction)).thenReturn(transaction);
+
+    assertThat(transactionApplicationService.categorize(transaction.getId(), category.getId())
+        .getCategoryId()).isEqualTo(category.getId());
+    assertThat(transactionApplicationService.categorize(transaction.getId(), null)
+        .getCategoryId()).isNull();
+    assertThat(transaction.getAmount()).isEqualTo(amount);
+    assertThat(transaction.getTimestamp()).isEqualTo(date);
+    assertThat(transaction.getDescription()).isEqualTo("Bank expense");
+    verify(accountRepository, never()).save(any());
+  }
+
+  @Test
+  void updatesAndClearsCustomDescriptionWithoutChangingBankData() {
+    var amount = Money.of("5.00");
+    var date = Instant.parse("2026-10-01T12:00:00Z");
+    var transaction = Transaction.create(amount, TransactionType.EXPENSE,
+        "Bank expense", date, TransactionSource.OPEN_FINANCE, UUID.randomUUID(), null, null);
+    var category = Category.create("Mercado");
+    when(transactionRepository.findByIdForUpdate(transaction.getId()))
+        .thenReturn(Optional.of(transaction));
+    when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+    when(transactionRepository.save(transaction)).thenReturn(transaction);
+
+    var updated = transactionApplicationService.updateImportedDetails(
+        transaction.getId(), category.getId(), "  Groceries  ");
+    assertThat(updated.getCustomDescription()).isEqualTo("Groceries");
+    assertThat(updated.getCategoryId()).isEqualTo(category.getId());
+    assertThat(updated.getDescription()).isEqualTo("Bank expense");
+    assertThat(updated.getAmount()).isEqualTo(amount);
+    assertThat(updated.getTimestamp()).isEqualTo(date);
+
+    var cleared = transactionApplicationService.updateImportedDetails(
+        transaction.getId(), category.getId(), "   ");
+    assertThat(cleared.getCustomDescription()).isNull();
+    assertThat(cleared.getCategoryId()).isEqualTo(category.getId());
+    verify(accountRepository, never()).save(any());
   }
 
   @Nested

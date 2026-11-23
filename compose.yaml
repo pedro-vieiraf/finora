@@ -10,6 +10,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - path: ${FINORA_OPEN_FINANCE_ENV_FILE:-${HOME}/.config/finora/open-finance.env}
+        required: false
+        format: raw
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ledger
       SPRING_DATASOURCE_USERNAME: ledger

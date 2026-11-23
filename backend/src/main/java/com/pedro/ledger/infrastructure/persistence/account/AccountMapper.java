@@ -23,7 +23,8 @@ public class AccountMapper {
         account.getType(),
         account.getStatus(),
         account.getBalance().amount(),
-        account.getBalance().currency()
+        account.getBalance().currency(),
+        account.getSource()
     );
   }
 
@@ -42,7 +43,8 @@ public class AccountMapper {
         Money.of(
             entity.getBalance(),
             entity.getCurrency()
-        )
+        ),
+        entity.getSource()
     );
   }
 }
