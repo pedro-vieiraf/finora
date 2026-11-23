@@ -9,6 +9,17 @@ const API_URL = Platform.OS === 'android'
     ? process.env.EXPO_PUBLIC_API_URL_ANDROID ?? process.env.EXPO_PUBLIC_API_URL
     : process.env.EXPO_PUBLIC_API_URL;
 const REQUEST_TIMEOUT_MS = 10_000;
+const SIGN_IN_TIMEOUT_MS = 90_000;
+export const requiresApiToken = process.env.EXPO_PUBLIC_API_AUTH_REQUIRED === 'true';
+let apiToken: string | undefined;
+
+export async function signInToApi(token: string): Promise<void> {
+  if (!API_URL?.startsWith('https://')) {
+    throw new Error('Configure o endereço HTTPS da API antes de entrar.');
+  }
+  await request('/auth/session', {}, token, SIGN_IN_TIMEOUT_MS);
+  apiToken = token;
+}
 
 if (!API_URL) {
   throw new Error(
@@ -43,13 +54,26 @@ export async function apiRequest<T>(
     path: string,
     options: RequestInit = {},
 ): Promise<T> {
+  return request<T>(path, options, apiToken, REQUEST_TIMEOUT_MS);
+}
+
+async function request<T>(
+    path: string,
+    options: RequestInit,
+    token: string | undefined,
+    timeoutMs: number,
+): Promise<T> {
+  const headers = new Headers(options.headers);
+  headers.set('Accept', 'application/json');
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
   const controller = new AbortController();
   let timedOut = false;
 
   const timeoutId = setTimeout(() => {
     timedOut = true;
     controller.abort();
-  }, REQUEST_TIMEOUT_MS);
+  }, timeoutMs);
 
   let response: Response;
 
@@ -57,10 +81,8 @@ export async function apiRequest<T>(
     response = await fetch(`${API_URL}${path}`, {
       ...options,
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        ...options.headers,
-      },
+      redirect: token ? 'error' : options.redirect,
+      headers,
     });
   } catch {
     if (timedOut) {

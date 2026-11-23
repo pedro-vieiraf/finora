@@ -32,3 +32,9 @@ replay_pid*
 
 ### Maven build output ###
 target/
+
+# Neon CLI and local database environment
+/.neon
+/.env
+/.env.local
+/node_modules/
