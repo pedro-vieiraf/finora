@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -91,6 +92,28 @@ public class TransactionController {
 
     return ResponseEntity.ok(response);
   }
+
+  @PutMapping("/{id}/category")
+  public ResponseEntity<TransactionResponse> categorize(
+      @PathVariable UUID id,
+      @RequestBody CategoryRequest request
+  ) {
+    return ResponseEntity.ok(TransactionResponse.from(service.categorize(id, request.categoryId())));
+  }
+
+  public record CategoryRequest(UUID categoryId) {}
+
+  @PutMapping("/{id}/details")
+  public ResponseEntity<TransactionResponse> updateImportedDetails(
+      @PathVariable UUID id,
+      @RequestBody ImportedDetailsRequest request
+  ) {
+    return ResponseEntity.ok(TransactionResponse.from(
+        service.updateImportedDetails(id, request.categoryId(), request.customDescription())
+    ));
+  }
+
+  public record ImportedDetailsRequest(UUID categoryId, String customDescription) {}
 
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(

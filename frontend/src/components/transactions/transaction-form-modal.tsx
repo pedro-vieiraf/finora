@@ -252,7 +252,9 @@ function buildInitialForm(
     return {
       type: mapTransactionType(transaction.type),
       amount: transaction.amount,
-      description: transaction.description ?? '',
+      description: (transaction.source === 'OPEN_FINANCE'
+        ? transaction.customDescription
+        : transaction.description) ?? '',
       accountId: transaction.accountId,
       destinationAccountId: transaction.destinationAccountId ?? '',
       categoryId: transaction.categoryId ?? '',
@@ -294,6 +296,7 @@ export function TransactionFormModal({
     transactions: apiTransactions,
     createTransaction,
     updateTransaction,
+    updateImportedTransactionDetails,
     deleteTransaction,
   } = useTransactions();
 
@@ -324,6 +327,9 @@ export function TransactionFormModal({
   const editingTransaction = editingTransactionId
     ? apiTransactions.find((item) => item.id === editingTransactionId)
     : undefined;
+
+  const isImported = editingTransaction?.source === 'OPEN_FINANCE';
+  const canCategorize = isImported && editingTransaction.type !== 'TRANSFER';
 
   const deletingDescription = editingTransaction
     ? editingTransaction.description?.trim() ||
@@ -569,6 +575,30 @@ export function TransactionFormModal({
     }
   };
 
+  const saveImportedDetails = async () => {
+    if (!editingTransactionId || !isImported || savingRef.current) return;
+
+    savingRef.current = true;
+    setSaving(true);
+    setFormError(null);
+    try {
+      await updateImportedTransactionDetails(
+        editingTransactionId,
+        canCategorize ? form.categoryId || null : null,
+        form.description.trim() || null,
+      );
+      onClose();
+      showToast({ variant: 'success', title: 'Detalhes atualizados' });
+    } catch (cause) {
+      setFormError(
+        cause instanceof Error ? cause.message : 'Não foi possível salvar os detalhes.',
+      );
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
+
   const handleDelete = () => {
     if (!editingTransactionId) {
       setFormError(
@@ -621,6 +651,136 @@ export function TransactionFormModal({
       setDeletingTransaction(false);
     }
   };
+
+  const categoryField = (
+        <FormField
+          label="Categoria"
+          hint={
+            mode === 'edit' && !form.categoryId
+              ? 'A transação continuará sem categoria se você não selecionar uma.'
+              : undefined
+          }
+          isDesktop={isDesktop}
+        >
+          <View
+            style={
+              isDesktop
+                ? desktopFormStyles.selectionList
+                : styles.selectionList
+            }
+          >
+            {(mode === 'create' || canCategorize) && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected: form.categoryId === '',
+                }}
+                onPress={() => updateForm('categoryId', '')}
+                style={({ pressed }) =>
+                  isDesktop
+                    ? [
+                        desktopFormStyles.selectionOption,
+                        form.categoryId === '' &&
+                          desktopFormStyles.selectionOptionSelected,
+                        pressed &&
+                          form.categoryId !== '' &&
+                          desktopFormStyles.selectionOptionPressed,
+                      ]
+                    : [
+                        styles.selectionOption,
+                        form.categoryId === '' &&
+                          styles.selectionOptionSelected,
+                      ]
+                }
+              >
+                <Text
+                  style={
+                    isDesktop
+                      ? [
+                          desktopFormStyles.selectionOptionText,
+                          form.categoryId === '' &&
+                            desktopFormStyles.selectionOptionTextSelected,
+                        ]
+                      : [
+                          styles.selectionOptionText,
+                          form.categoryId === '' &&
+                            styles.selectionOptionTextSelected,
+                        ]
+                  }
+                >
+                  Sem categoria
+                </Text>
+                <SelectionCheck
+                  selected={form.categoryId === ''}
+                  isDesktop={isDesktop}
+                />
+              </Pressable>
+            )}
+
+            {categories.map((category) => {
+              const selected = form.categoryId === category.id;
+
+              return (
+                <Pressable
+                  key={category.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => updateForm('categoryId', category.id)}
+                  style={({ pressed }) =>
+                    isDesktop
+                      ? [
+                          desktopFormStyles.selectionOption,
+                          selected &&
+                            desktopFormStyles.selectionOptionSelected,
+                          pressed &&
+                            !selected &&
+                            desktopFormStyles.selectionOptionPressed,
+                        ]
+                      : [
+                          styles.selectionOption,
+                          selected && styles.selectionOptionSelected,
+                        ]
+                  }
+                >
+                  <Text
+                    style={
+                      isDesktop
+                        ? [
+                            desktopFormStyles.selectionOptionText,
+                            selected &&
+                              desktopFormStyles.selectionOptionTextSelected,
+                          ]
+                        : [
+                            styles.selectionOptionText,
+                            selected && styles.selectionOptionTextSelected,
+                          ]
+                    }
+                  >
+                    {category.name}
+                  </Text>
+                  <SelectionCheck
+                    selected={selected}
+                    isDesktop={isDesktop}
+                  />
+                </Pressable>
+              );
+            })}
+
+            {categories.length === 0 && (
+              <Text
+                style={
+                  isDesktop
+                    ? desktopFormStyles.noOptionsText
+                    : styles.noOptionsText
+                }
+              >
+                Nenhuma categoria cadastrada. Você pode salvar sem categoria e
+                cadastrar uma depois.
+              </Text>
+            )}
+          </View>
+        </FormField>
+  );
 
   const fields = (
     <>
@@ -914,135 +1074,7 @@ export function TransactionFormModal({
         </FormField>
       ) : null}
 
-      {form.type !== 'transfer' && (
-        <FormField
-          label="Categoria"
-          hint={
-            mode === 'edit' && !form.categoryId
-              ? 'A transação continuará sem categoria se você não selecionar uma.'
-              : undefined
-          }
-          isDesktop={isDesktop}
-        >
-          <View
-            style={
-              isDesktop
-                ? desktopFormStyles.selectionList
-                : styles.selectionList
-            }
-          >
-            {mode === 'create' && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{
-                  selected: form.categoryId === '',
-                }}
-                onPress={() => updateForm('categoryId', '')}
-                style={({ pressed }) =>
-                  isDesktop
-                    ? [
-                        desktopFormStyles.selectionOption,
-                        form.categoryId === '' &&
-                          desktopFormStyles.selectionOptionSelected,
-                        pressed &&
-                          form.categoryId !== '' &&
-                          desktopFormStyles.selectionOptionPressed,
-                      ]
-                    : [
-                        styles.selectionOption,
-                        form.categoryId === '' &&
-                          styles.selectionOptionSelected,
-                      ]
-                }
-              >
-                <Text
-                  style={
-                    isDesktop
-                      ? [
-                          desktopFormStyles.selectionOptionText,
-                          form.categoryId === '' &&
-                            desktopFormStyles.selectionOptionTextSelected,
-                        ]
-                      : [
-                          styles.selectionOptionText,
-                          form.categoryId === '' &&
-                            styles.selectionOptionTextSelected,
-                        ]
-                  }
-                >
-                  Sem categoria
-                </Text>
-                <SelectionCheck
-                  selected={form.categoryId === ''}
-                  isDesktop={isDesktop}
-                />
-              </Pressable>
-            )}
-
-            {categories.map((category) => {
-              const selected = form.categoryId === category.id;
-
-              return (
-                <Pressable
-                  key={category.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => updateForm('categoryId', category.id)}
-                  style={({ pressed }) =>
-                    isDesktop
-                      ? [
-                          desktopFormStyles.selectionOption,
-                          selected &&
-                            desktopFormStyles.selectionOptionSelected,
-                          pressed &&
-                            !selected &&
-                            desktopFormStyles.selectionOptionPressed,
-                        ]
-                      : [
-                          styles.selectionOption,
-                          selected && styles.selectionOptionSelected,
-                        ]
-                  }
-                >
-                  <Text
-                    style={
-                      isDesktop
-                        ? [
-                            desktopFormStyles.selectionOptionText,
-                            selected &&
-                              desktopFormStyles.selectionOptionTextSelected,
-                          ]
-                        : [
-                            styles.selectionOptionText,
-                            selected && styles.selectionOptionTextSelected,
-                          ]
-                    }
-                  >
-                    {category.name}
-                  </Text>
-                  <SelectionCheck
-                    selected={selected}
-                    isDesktop={isDesktop}
-                  />
-                </Pressable>
-              );
-            })}
-
-            {categories.length === 0 && (
-              <Text
-                style={
-                  isDesktop
-                    ? desktopFormStyles.noOptionsText
-                    : styles.noOptionsText
-                }
-              >
-                Nenhuma categoria cadastrada. Você pode salvar sem categoria e
-                cadastrar uma depois.
-              </Text>
-            )}
-          </View>
-        </FormField>
-      )}
+      {form.type !== 'transfer' && categoryField}
 
       {mode === 'create' && form.type !== 'transfer' && (
         <View
@@ -1491,6 +1523,36 @@ export function TransactionFormModal({
     </>
   );
 
+  const importedFields = (
+    <>
+      <FormField label="Descrição personalizada" isDesktop={isDesktop}>
+        <TextInput
+          value={form.description}
+          onChangeText={(value) => updateForm('description', value)}
+          placeholder="Ex.: Mercado, salário, aluguel..."
+          placeholderTextColor={isDesktop ? desktopColors.textMuted : COLORS.secondary}
+          style={isDesktop ? desktopFormStyles.input : styles.formInput}
+          maxLength={160}
+          editable={!saving}
+          accessibilityLabel="Descrição personalizada"
+        />
+        {editingTransaction?.description ? (
+          <Text style={isDesktop ? desktopFormStyles.fieldHint : styles.fieldHint}>
+            Descrição do banco: {editingTransaction.description}
+          </Text>
+        ) : null}
+      </FormField>
+      {canCategorize ? categoryField : (
+        <Notice isDesktop={isDesktop}>Transferências internas não têm categoria.</Notice>
+      )}
+    </>
+  );
+  const title = mode === 'create'
+    ? 'Adicionar transação'
+    : isImported ? 'Editar detalhes' : 'Editar transação';
+  const saveLabel = mode === 'create' ? 'Salvar transação' : 'Salvar alterações';
+  const onSave = isImported ? saveImportedDetails : handleSave;
+
   const feedback = formError ? (
     <InlineFeedback
       message={formError}
@@ -1540,7 +1602,7 @@ export function TransactionFormModal({
             ? 'NOVA MOVIMENTAÇÃO'
             : 'DETALHES DA MOVIMENTAÇÃO'
         }
-        title={mode === 'create' ? 'Adicionar transação' : 'Editar transação'}
+        title={title}
         description={
           mode === 'create'
             ? 'Registre uma receita, despesa ou transferência entre contas.'
@@ -1551,14 +1613,12 @@ export function TransactionFormModal({
         footer={
           <DesktopFormActions
             onCancel={closeModal}
-            onSave={() => void handleSave()}
-            saveLabel={
-              mode === 'create' ? 'Salvar transação' : 'Salvar alterações'
-            }
+            onSave={() => void onSave()}
+            saveLabel={saveLabel}
             saving={saving}
             cancelDisabled={saving || deletingTransaction}
             destructiveAction={
-              mode === 'edit' && editingTransactionId
+              mode === 'edit' && editingTransactionId && !isImported
                 ? {
                     label: 'Excluir transação',
                     onPress: handleDelete,
@@ -1569,9 +1629,9 @@ export function TransactionFormModal({
           />
         }
       >
-        {desktopFields}
+        {isImported ? importedFields : desktopFields}
         {feedback}
-        {disclaimer}
+        {!isImported && disclaimer}
       </DesktopFormModal>
     );
   }
@@ -1596,9 +1656,7 @@ export function TransactionFormModal({
                   : 'DETALHES DA MOVIMENTAÇÃO'}
               </Text>
               <Text style={styles.modalTitle}>
-                {mode === 'create'
-                  ? 'Adicionar transação'
-                  : 'Editar transação'}
+                {title}
               </Text>
             </View>
 
@@ -1619,12 +1677,12 @@ export function TransactionFormModal({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {fields}
+            {isImported ? importedFields : fields}
             {feedback}
 
             <Pressable
               accessibilityRole="button"
-              onPress={() => void handleSave()}
+              onPress={() => void onSave()}
               disabled={saving}
               style={[styles.saveButton, saving && styles.disabledButton]}
             >
@@ -1632,14 +1690,12 @@ export function TransactionFormModal({
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.saveButtonText}>
-                  {mode === 'create'
-                    ? 'Salvar transação'
-                    : 'Salvar alterações'}
+                  {saveLabel}
                 </Text>
               )}
             </Pressable>
 
-            {mode === 'edit' && editingTransactionId && (
+            {mode === 'edit' && editingTransactionId && !isImported && (
               <Pressable
                 accessibilityRole="button"
                 onPress={handleDelete}
@@ -1655,7 +1711,7 @@ export function TransactionFormModal({
               </Pressable>
             )}
 
-            {disclaimer}
+            {!isImported && disclaimer}
           </ScrollView>
 
           {deleteDialog}

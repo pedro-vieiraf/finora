@@ -22,7 +22,8 @@ import { useCreditCards } from '@/contexts/credit-cards-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useRecurrences } from '@/contexts/recurrences-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
-import { useTransactions, type Transaction } from '@/contexts/transactions-context';
+import type { Transaction } from '@/contexts/transactions-context';
+import { useOperationalTransactions } from '@/hooks/use-operational-transactions';
 import { getCategories, type Category } from '@/services/categories-api';
 import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
 import {
@@ -201,7 +202,7 @@ function MobileDashboardScreen() {
     loading: transactionsLoading,
     error: transactionsError,
     refreshTransactions,
-  } = useTransactions();
+  } = useOperationalTransactions();
   const { refreshCreditCards } = useCreditCards();
   const { refreshRecurrences } = useRecurrences();
 
@@ -626,6 +627,7 @@ function MobileDashboardScreen() {
             {recentTransactions.map((transaction, index) => {
               const palette = getTransactionPalette(transaction.type);
               const description =
+                transaction.customDescription?.trim() ||
                 transaction.description?.trim() ||
                 getDefaultDescription(transaction.type);
               const category = getCategoryLabel(

@@ -22,6 +22,7 @@ import {
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useDashboardCreditCards } from '@/hooks/use-dashboard-credit-cards';
+import { useOpenFinanceCardBills } from '@/hooks/use-open-finance-card-bills';
 import { maskMoney } from '@/utils/privacy';
 
 const CHART_PLOT_HEIGHT = 170;
@@ -47,15 +48,17 @@ function monthLabel(key: string) {
  */
 export function DesktopDashboardInvoiceEvolution() {
   const { hidden } = usePrivacy();
+  const { cards: connectedCards } = useOpenFinanceCardBills();
   const {
     evolution,
     evolutionPeriod,
     hasEvolutionData,
+    hasForecast,
     loading,
     error,
     invoicesError,
     refresh,
-  } = useDashboardCreditCards();
+  } = useDashboardCreditCards(connectedCards);
 
   const axis = useMemo(() => {
     const maxValue = evolution.reduce(
@@ -96,7 +99,7 @@ export function DesktopDashboardInvoiceEvolution() {
 
         <View style={styles.legend}>
           <View style={styles.legendDot} />
-          <Text style={styles.legendLabel}>Total restante por mês</Text>
+          <Text style={styles.legendLabel}>{hasForecast ? 'Inclui previsões e estimativas' : 'Total restante por mês'}</Text>
         </View>
       </View>
 

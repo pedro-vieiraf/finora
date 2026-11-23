@@ -1,5 +1,6 @@
 package com.pedro.ledger.infrastructure.persistence.account;
 
+import com.pedro.ledger.domain.account.AccountSource;
 import com.pedro.ledger.domain.account.AccountStatus;
 import com.pedro.ledger.domain.account.AccountType;
 import jakarta.persistence.Column;
@@ -11,6 +12,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.UUID;
+import org.hibernate.annotations.ColumnDefault;
 
 /**
  * JPA entity representing an account in the persistence layer.
@@ -32,6 +34,11 @@ public class AccountEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private AccountStatus status;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  @ColumnDefault("'MANUAL'")
+  private AccountSource source;
 
   @Column(nullable = false, precision = 19, scale = 2)
   private BigDecimal balance;
@@ -56,14 +63,22 @@ public class AccountEntity {
    * @param currency account currency
    */
   public AccountEntity(
+      UUID id, String name, AccountType type, AccountStatus status, BigDecimal balance, Currency currency
+  ) {
+    this(id, name, type, status, balance, currency, AccountSource.MANUAL);
+  }
+
+  public AccountEntity(
       UUID id,
       String name,
       AccountType type,
       AccountStatus status,
       BigDecimal balance,
-      Currency currency
+      Currency currency,
+      AccountSource source
   ) {
     this.id = id;
+    this.source = source;
     this.name = name;
     this.type = type;
     this.status = status;
@@ -105,6 +120,10 @@ public class AccountEntity {
    */
   public AccountStatus getStatus() {
     return status;
+  }
+
+  public AccountSource getSource() {
+    return source;
   }
 
   /**

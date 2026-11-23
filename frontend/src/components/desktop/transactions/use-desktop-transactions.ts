@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 
 import { useAccounts } from '@/contexts/accounts-context';
-import { useTransactions } from '@/contexts/transactions-context';
+import { useOperationalTransactions } from '@/hooks/use-operational-transactions';
 import { getCategories, type Category } from '@/services/categories-api';
 import { getActiveAccounts } from '@/utils/financial-summary';
 import {
@@ -29,7 +29,7 @@ export function useDesktopTransactions() {
     loading: transactionsLoading,
     error: transactionsError,
     refreshTransactions,
-  } = useTransactions();
+  } = useOperationalTransactions();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);

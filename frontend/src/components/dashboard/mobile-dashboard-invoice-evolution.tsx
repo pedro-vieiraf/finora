@@ -14,6 +14,7 @@ import {
 } from '@/constants/mobile-theme';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useDashboardCreditCards } from '@/hooks/use-dashboard-credit-cards';
+import { useOpenFinanceCardBills } from '@/hooks/use-open-finance-card-bills';
 import { maskMoney } from '@/utils/privacy';
 
 const colors = {
@@ -66,15 +67,17 @@ function monthLabel(key: string) {
  */
 export function MobileDashboardInvoiceEvolution() {
   const { hidden } = usePrivacy();
+  const { cards: connectedCards } = useOpenFinanceCardBills();
   const {
     evolution,
     evolutionPeriod,
     hasEvolutionData,
+    hasForecast,
     loading,
     error,
     invoicesError,
     refresh,
-  } = useDashboardCreditCards();
+  } = useDashboardCreditCards(connectedCards);
 
   const maxValue = evolution.reduce(
     (maximum, point) => Math.max(maximum, point.total),
@@ -89,6 +92,10 @@ export function MobileDashboardInvoiceEvolution() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Evolução das faturas</Text>
       </View>
+
+      {hasForecast ? (
+        <InlineFeedback variant="info" message="Inclui previsões do Open Finance e estimativas de parcelas." />
+      ) : null}
 
       {error ? (
         <View style={styles.feedbackBlock}>

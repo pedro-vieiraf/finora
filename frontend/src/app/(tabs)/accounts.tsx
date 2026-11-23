@@ -613,6 +613,9 @@ function AccountsMobileScreen() {
                             <Text style={styles.accountType}>
                               {formatAccountType(account.type)}
                             </Text>
+                            <Text style={styles.accountSource}>
+                              {account.source === 'OPEN_FINANCE' ? 'Open Finance' : 'Manual'}
+                            </Text>
                           </View>
 
                           <View
@@ -1138,6 +1141,17 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     fontSize: 12,
     marginTop: 4,
+  },
+  accountSource: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primaryLight,
+    color: colors.text,
+    borderRadius: 8,
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   statusBadge: {
     borderRadius: 10,

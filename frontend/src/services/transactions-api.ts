@@ -10,6 +10,7 @@ export interface Transaction {
   currency: string;
   type: TransactionType;
   description: string | null;
+  customDescription?: string | null;
   timestamp: string;
   source: TransactionSource;
   accountId: string;
@@ -72,6 +73,18 @@ export function updateTransaction(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(input),
+  });
+}
+
+export function updateImportedTransactionDetails(
+  id: string,
+  categoryId: string | null,
+  customDescription: string | null,
+): Promise<Transaction> {
+  return apiRequest<Transaction>(`/transactions/${id}/details`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ categoryId, customDescription }),
   });
 }
 

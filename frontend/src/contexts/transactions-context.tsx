@@ -10,6 +10,7 @@ import {
 
 import { useAccounts } from '@/contexts/accounts-context';
 import {
+  updateImportedTransactionDetails as updateImportedTransactionDetailsRequest,
   createTransaction as createTransactionRequest,
   deleteTransaction as deleteTransactionRequest,
   getTransactions,
@@ -35,6 +36,11 @@ type TransactionsContextValue = {
   updateTransaction: (
       id: string,
       input: UpdateTransactionInput,
+  ) => Promise<Transaction>;
+  updateImportedTransactionDetails: (
+    id: string,
+    categoryId: string | null,
+    customDescription: string | null,
   ) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<void>;
 };
@@ -137,6 +143,16 @@ export function TransactionsProvider({
           const updated = await updateTransactionRequest(id, input);
 
           await refreshAfterMutation();
+
+          return updated;
+        },
+
+        async updateImportedTransactionDetails(id, categoryId, customDescription) {
+          const updated = await updateImportedTransactionDetailsRequest(
+            id, categoryId, customDescription,
+          );
+
+          await refreshTransactions({ silent: true });
 
           return updated;
         },

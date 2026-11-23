@@ -74,6 +74,7 @@ public class RecurrenceApplicationService {
       throw new AccountInactiveException("Account is inactive");
     }
 
+    account.requireManualPostingAllowed();
     validateCategory(categoryId);
 
     Currency recurrenceCurrency = currency == null

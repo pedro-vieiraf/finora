@@ -29,6 +29,22 @@ class TransactionMapperTest {
   }
 
   @Test
+  void preservesBankAndCustomDescriptionsOnRoundTrip() {
+    UUID accountId = UUID.randomUUID();
+    var transaction = Transaction.create(Money.of("5.00"), TransactionType.EXPENSE,
+        "Bank expense", Instant.now(), TransactionSource.OPEN_FINANCE, accountId, null, null);
+    transaction.changeCustomDescription("Groceries");
+    AccountEntity account = mock(AccountEntity.class);
+    when(entityManager.getReference(AccountEntity.class, accountId)).thenReturn(account);
+    when(account.getId()).thenReturn(accountId);
+
+    var restored = mapper.toDomain(mapper.toEntity(transaction));
+
+    assertThat(restored.getDescription()).isEqualTo("Bank expense");
+    assertThat(restored.getCustomDescription()).isEqualTo("Groceries");
+  }
+
+  @Test
   void shouldMapDomainToEntity() {
     UUID accountId = UUID.randomUUID();
     UUID categoryId = UUID.randomUUID();
