@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -19,6 +19,7 @@ import {
   desktopLayout,
   desktopShadows,
 } from '@/components/desktop/desktop-theme';
+import { InvoiceEvolutionDetails } from '@/components/dashboard/invoice-evolution-details';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useDashboardCreditCards } from '@/hooks/use-dashboard-credit-cards';
@@ -37,19 +38,12 @@ function monthLabel(key: string) {
   return formatMonthShort(new Date(year, month - 1, 1, 12));
 }
 
-/**
- * Evolução das faturas do Dashboard desktop.
- *
- * Soma o `remainingAmount` das faturas pendentes de cartões ativos por mês de
- * vencimento, na janela dos próximos seis meses. Não há projeção de compras
- * futuras: as barras refletem apenas faturas já retornadas pelo backend. Se a
- * consulta de faturas falhar, o gráfico mostra somente o período com dados
- * confirmados.
- */
 export function DesktopDashboardInvoiceEvolution() {
   const { hidden } = usePrivacy();
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const { cards: connectedCards } = useOpenFinanceCardBills();
   const {
+    entries,
     evolution,
     evolutionPeriod,
     hasEvolutionData,
@@ -80,6 +74,11 @@ export function DesktopDashboardInvoiceEvolution() {
     }
 
     return Math.max((value / axis.max) * CHART_PLOT_HEIGHT, 4);
+  }
+
+  const selectedPoint = evolution.find((point) => point.key === selectedMonth);
+  function selectMonth(month: string) {
+    setSelectedMonth((current) => current === month ? null : month);
   }
 
   const isInitialLoading = loading && evolution.length === 0;
@@ -155,7 +154,6 @@ export function DesktopDashboardInvoiceEvolution() {
         </View>
       ) : hasEvolutionData ? (
         <View
-          accessibilityRole="image"
           accessibilityLabel={`Gráfico de evolução das faturas: ${evolutionPeriod}`}
           style={styles.chartFrame}
         >
@@ -196,7 +194,17 @@ export function DesktopDashboardInvoiceEvolution() {
 
               <View style={styles.chartArea}>
                 {evolution.map((point) => (
-                  <View key={point.key} style={styles.chartGroup}>
+                  <Pressable
+                    key={point.key}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: selectedMonth === point.key }}
+                    accessibilityLabel={`Ver detalhes de ${monthLabel(point.key)}, ${maskMoney(formatCurrency(point.total), hidden)}`}
+                    onPress={() => selectMonth(point.key)}
+                    style={({ pressed }) => [
+                      styles.chartGroup,
+                      (pressed || selectedMonth === point.key) && styles.selectedBar,
+                    ]}
+                  >
                     <View style={styles.barsRow}>
                       <View
                         style={[styles.bar, { height: barHeight(point.total) }]}
@@ -213,12 +221,22 @@ export function DesktopDashboardInvoiceEvolution() {
                     >
                       {maskMoney(formatCurrency(point.total), hidden)}
                     </Text>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </View>
           </View>
         </View>
+      ) : null}
+      {selectedPoint && hasEvolutionData ? (
+        <InvoiceEvolutionDetails
+          key={selectedPoint.key}
+          month={selectedPoint.key}
+          total={selectedPoint.total}
+          entries={entries}
+          connectedCards={connectedCards}
+          desktop={true}
+        />
       ) : null}
     </View>
   );
@@ -382,6 +400,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
     alignItems: 'center',
     gap: 6,
+  },
+  selectedBar: {
+    borderRadius: 6,
+    backgroundColor: desktopColors.primarySoft,
   },
   barsRow: {
     width: '100%',

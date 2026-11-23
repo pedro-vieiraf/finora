@@ -145,7 +145,7 @@ public class ConnectedCardBills {
 
   private record CardActivity(List<Bill> bills, List<Forecast> forecasts) {}
 
-  public record Forecast(String month, BigDecimal total, String currency, boolean estimated) {}
+  public record Forecast(String month, BigDecimal total, String currency, boolean estimated, List<Entry> entries) {}
 
   private static LocalDate bankDate(String value) {
     return value == null ? null : LocalDate.parse(value.substring(0, 10));
