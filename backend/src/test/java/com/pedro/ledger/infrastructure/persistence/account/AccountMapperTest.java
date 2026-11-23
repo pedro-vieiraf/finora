@@ -3,6 +3,7 @@ package com.pedro.ledger.infrastructure.persistence.account;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pedro.ledger.domain.account.Account;
+import com.pedro.ledger.domain.account.AccountSource;
 import com.pedro.ledger.domain.account.AccountStatus;
 import com.pedro.ledger.domain.account.AccountType;
 import com.pedro.ledger.domain.money.Money;
@@ -39,6 +40,7 @@ class AccountMapperTest {
     assertThat(entity.getBalance())
         .isEqualByComparingTo(account.getBalance().amount());
 
+    assertThat(entity.getSource()).isEqualTo(AccountSource.MANUAL);
     assertThat(entity.getCurrency())
         .isEqualTo(account.getBalance().currency());
   }
@@ -54,10 +56,13 @@ class AccountMapperTest {
         AccountType.CHECKING,
         AccountStatus.ACTIVE,
         Money.of("1000.00", currency).amount(),
-        currency
+        currency,
+        AccountSource.OPEN_FINANCE
     );
 
     Account account = mapper.toDomain(entity);
+
+    assertThat(account.getSource()).isEqualTo(AccountSource.OPEN_FINANCE);
 
     assertThat(account.getId())
         .isEqualTo(id);
@@ -86,10 +91,13 @@ class AccountMapperTest {
         AccountType.SAVINGS,
         AccountStatus.INACTIVE,
         Money.of("2500.00", currency).amount(),
-        currency
+        currency,
+        AccountSource.OPEN_FINANCE
     );
 
     Account account = mapper.toDomain(entity);
+
+    assertThat(account.getSource()).isEqualTo(AccountSource.OPEN_FINANCE);
 
     assertThat(account.getId())
         .isEqualTo(id);
@@ -118,10 +126,13 @@ class AccountMapperTest {
         AccountType.CHECKING,
         AccountStatus.ACTIVE,
         Money.of("1500.00", currency).amount(),
-        currency
+        currency,
+        AccountSource.OPEN_FINANCE
     );
 
     Account account = mapper.toDomain(entity);
+
+    assertThat(account.getSource()).isEqualTo(AccountSource.OPEN_FINANCE);
 
     assertThat(account.getBalance())
         .isEqualTo(Money.of("1500.00", currency));

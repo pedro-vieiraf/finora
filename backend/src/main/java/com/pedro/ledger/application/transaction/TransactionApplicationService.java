@@ -158,6 +158,7 @@ public class TransactionApplicationService {
       Instant timestamp
   ) {
     Transaction transaction = getByIdOrThrow(id);
+    requireManualTransaction(transaction);
 
     if (amount != null) {
       Account account = lockAccount(
@@ -200,11 +201,30 @@ public class TransactionApplicationService {
   }
 
   @Transactional
+  public Transaction categorize(UUID id, UUID categoryId) {
+    Transaction transaction = getByIdOrThrow(id);
+    validateCategory(categoryId);
+    transaction.changeCategory(categoryId);
+    return transactionRepository.save(transaction);
+  }
+
+  @Transactional
+  public Transaction updateImportedDetails(UUID id, UUID categoryId, String customDescription) {
+    Transaction transaction = getByIdOrThrow(id);
+    validateCategory(categoryId);
+    transaction.changeCustomDescription(customDescription);
+    transaction.changeCategory(categoryId);
+    return transactionRepository.save(transaction);
+  }
+
+  @Transactional
   public void delete(UUID id) {
     Transaction transaction = transactionRepository.findByIdForUpdate(id)
         .orElseThrow(() ->
             new TransactionNotFoundException()
         );
+
+    requireManualTransaction(transaction);
 
     if (transaction.getType().equals(TransactionType.TRANSFER)) {
       LockedAccounts accounts = lockAccounts(
@@ -235,6 +255,12 @@ public class TransactionApplicationService {
     }
 
     transactionRepository.delete(id);
+  }
+
+  private static void requireManualTransaction(Transaction transaction) {
+    if (transaction.getSource() == TransactionSource.OPEN_FINANCE) {
+      throw new IllegalStateException("Open Finance transactions cannot be edited or deleted manually");
+    }
   }
 
   private Transaction getByIdOrThrow(UUID id) {

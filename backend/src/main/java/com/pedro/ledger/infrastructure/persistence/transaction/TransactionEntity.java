@@ -53,6 +53,9 @@ public class TransactionEntity {
   @Column
   private String description;
 
+  @Column(name = "custom_description", length = 160)
+  private String customDescription;
+
   @Column(nullable = false)
   private Instant timestamp;
 
@@ -229,6 +232,14 @@ public class TransactionEntity {
    */
   public String getDescription() {
     return description;
+  }
+
+  public String getCustomDescription() {
+    return customDescription;
+  }
+
+  public void setCustomDescription(String customDescription) {
+    this.customDescription = customDescription;
   }
 
   /**

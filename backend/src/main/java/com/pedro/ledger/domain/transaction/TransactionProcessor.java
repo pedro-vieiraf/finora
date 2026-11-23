@@ -40,6 +40,10 @@ public final class TransactionProcessor {
 
     ensureAccountMatchesTransaction(transaction, account);
 
+    if (transaction.getSource() == TransactionSource.MANUAL) {
+      account.requireManualPostingAllowed();
+    }
+
     if (!account.isActive()) {
       throw new AccountInactiveException(
           "Account is inactive"
@@ -104,6 +108,11 @@ public final class TransactionProcessor {
       throw new IllegalArgumentException(
           "Destination account does not match transaction"
       );
+    }
+
+    if (transaction.getSource() == TransactionSource.MANUAL) {
+      source.requireManualPostingAllowed();
+      destination.requireManualPostingAllowed();
     }
 
     if (!source.isActive()) {

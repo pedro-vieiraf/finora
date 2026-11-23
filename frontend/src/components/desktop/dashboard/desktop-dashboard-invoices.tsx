@@ -15,7 +15,9 @@ import {
   desktopLayout,
   desktopShadows,
 } from '@/components/desktop/desktop-theme';
+import { OpenFinanceCardItem } from '@/components/credit-cards/open-finance-card-bills';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
+import { useOpenFinanceCardBills } from '@/hooks/use-open-finance-card-bills';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useDashboardCreditCards } from '@/hooks/use-dashboard-credit-cards';
 import type { CreditCardInvoice } from '@/services/credit-card-invoices-api';
@@ -124,6 +126,8 @@ function InvoiceRow({
 export function DesktopDashboardInvoices() {
   const router = useRouter();
   const { hidden } = usePrivacy();
+  const { cards: connectedCards, loading: connectedLoading, error: connectedError } =
+    useOpenFinanceCardBills();
   const {
     entries,
     visibleEntries,
@@ -154,7 +158,7 @@ export function DesktopDashboardInvoices() {
         <View style={styles.heading}>
           <Text style={styles.title}>Faturas de cartão</Text>
           <Text style={styles.subtitle}>
-            Faturas pendentes dos cartões ativos
+            Faturas dos cartões ativos
           </Text>
         </View>
 
@@ -207,12 +211,20 @@ export function DesktopDashboardInvoices() {
         />
       ) : null}
 
+      {connectedError ? (
+        <InlineFeedback variant="warning" message="Não foi possível atualizar as faturas conectadas." />
+      ) : null}
+
+      {connectedCards.map((card) => (
+        <OpenFinanceCardItem key={card.id} card={card} desktop dashboard />
+      ))}
+
       {isInitialLoading ? (
         <View style={styles.loadingState}>
           <ActivityIndicator size="small" color={desktopColors.primary} />
           <Text style={styles.loadingText}>Carregando faturas...</Text>
         </View>
-      ) : entries.length === 0 && !error ? (
+      ) : entries.length === 0 && !error && !connectedLoading && !connectedError && connectedCards.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Nenhuma fatura pendente</Text>
           <Text style={styles.emptyText}>

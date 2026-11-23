@@ -1,3 +1,4 @@
+import type { OpenFinanceCard } from '@/services/open-finance-card-bills-api';
 import type {
   CreditCard,
   CreditCardStatus,
@@ -616,4 +617,42 @@ export function formatEvolutionPeriod(points: InvoiceEvolutionPoint[]): string {
   const last = formatMonthYear(`${points[points.length - 1].key}-01`);
 
   return `${first} a ${last}`;
+}
+
+export function getInvoiceEvolutionReference(
+  entries: readonly OutstandingInvoiceEntry[],
+  cards: readonly OpenFinanceCard[],
+  today = new Date(),
+) {
+  const currentMonth = evolutionMonthKey(today.getFullYear(), today.getMonth());
+  const followingMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1, 12);
+  const followingKey = evolutionMonthKey(followingMonth.getFullYear(), followingMonth.getMonth());
+  const hasCurrentManualBill = entries.some((entry) => entry.invoice.dueDate.startsWith(currentMonth));
+  const hasFollowingForecast = cards.some((card) =>
+    card.nextCycle === followingKey && card.forecasts?.some((item) => item.month === followingKey && item.currency === 'BRL'),
+  );
+  return !hasCurrentManualBill && hasFollowingForecast ? followingMonth : today;
+}
+
+export function addConnectedForecasts(
+  points: readonly InvoiceEvolutionPoint[],
+  cards: readonly OpenFinanceCard[],
+) {
+  const byMonth = new Map<string, number>();
+  for (const card of cards) {
+    for (const forecast of card.forecasts ?? []) {
+      if (forecast.currency === 'BRL') {
+        byMonth.set(forecast.month, (byMonth.get(forecast.month) ?? 0) + toCents(forecast.total));
+      }
+    }
+  }
+
+  return points.map((point) => {
+    const estimated = byMonth.get(point.key) ?? 0;
+    return {
+      ...point,
+      total: fromCents(toCents(point.total) + estimated),
+      estimated: fromCents(estimated),
+    };
+  });
 }

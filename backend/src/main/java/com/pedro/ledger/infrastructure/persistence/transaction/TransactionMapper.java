@@ -45,7 +45,7 @@ public class TransactionMapper {
       );
     }
 
-    return new TransactionEntity(
+    TransactionEntity entity = new TransactionEntity(
         transaction.getId(),
         transaction.getAmount().amount(),
         transaction.getAmount().currency(),
@@ -60,6 +60,8 @@ public class TransactionMapper {
         transaction.getRecurrenceId(),
         transaction.getOccurrenceDate()
     );
+    entity.setCustomDescription(transaction.getCustomDescription());
+    return entity;
   }
 
   /**
@@ -81,7 +83,8 @@ public class TransactionMapper {
         entity.getDestinationAccountId(),
         entity.getCategoryId(),
         entity.getRecurrenceId(),
-        entity.getOccurrenceDate()
+        entity.getOccurrenceDate(),
+        entity.getCustomDescription()
     );
   }
 }

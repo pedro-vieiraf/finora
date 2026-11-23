@@ -279,6 +279,7 @@ export function DesktopTopbar() {
     const transactionResults = transactions
       .filter((transaction) => {
         const description =
+          transaction.customDescription?.trim() ||
           transaction.description?.trim() ||
           getDefaultTransactionDescription(transaction.type);
         const category = categoriesById.get(transaction.categoryId ?? '');
@@ -294,6 +295,7 @@ export function DesktopTopbar() {
       .map((transaction) => ({
         id: transaction.id,
         title:
+          transaction.customDescription?.trim() ||
           transaction.description?.trim() ||
           getDefaultTransactionDescription(transaction.type),
         meta: [

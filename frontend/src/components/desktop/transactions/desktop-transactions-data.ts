@@ -52,6 +52,7 @@ export function mapDesktopTransaction(
   return {
     id: transaction.id,
     description:
+      transaction.customDescription?.trim() ||
       transaction.description?.trim() ||
       getDefaultTransactionDescription(transaction.type),
     category,

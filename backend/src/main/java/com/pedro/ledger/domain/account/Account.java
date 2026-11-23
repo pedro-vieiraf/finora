@@ -9,6 +9,7 @@ import java.util.UUID;
 public class Account {
 
   private final UUID id;
+  private final AccountSource source;
   private String name;
   private AccountType type;
 
@@ -29,9 +30,11 @@ public class Account {
       String name,
       AccountType type,
       AccountStatus status,
-      Money balance
+      Money balance,
+      AccountSource source
   ) {
     this.id = id;
+    this.source = source;
     this.name = name;
     this.type = type;
     this.status = status;
@@ -60,7 +63,8 @@ public class Account {
         name.trim(),
         type,
         AccountStatus.ACTIVE,
-        openingBalance
+        openingBalance,
+        AccountSource.MANUAL
     );
   }
 
@@ -81,6 +85,12 @@ public class Account {
       AccountStatus status,
       Money balance
   ) {
+    return restore(id, name, type, status, balance, AccountSource.MANUAL);
+  }
+
+  public static Account restore(
+      UUID id, String name, AccountType type, AccountStatus status, Money balance, AccountSource source
+  ) {
     validateId(id);
     validateName(name);
     validateType(type);
@@ -92,7 +102,8 @@ public class Account {
         name.trim(),
         type,
         status,
-        balance
+        balance,
+        java.util.Objects.requireNonNull(source, "source")
     );
   }
 
@@ -229,6 +240,16 @@ public class Account {
    */
   public AccountStatus getStatus() {
     return status;
+  }
+
+  public void requireManualPostingAllowed() {
+    if (source == AccountSource.OPEN_FINANCE) {
+      throw new IllegalStateException("Open Finance accounts only accept bank-sourced postings");
+    }
+  }
+
+  public AccountSource getSource() {
+    return source;
   }
 
   /**

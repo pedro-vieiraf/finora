@@ -12,9 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 
-import {
-  useTransactions,
-} from '../../contexts/transactions-context';
+import { useOperationalTransactions } from '@/hooks/use-operational-transactions';
 import {
   getAccounts,
   type Account,
@@ -190,6 +188,7 @@ function mapApiTransaction(
   return {
     id: transaction.id,
     description:
+        transaction.customDescription?.trim() ||
         transaction.description?.trim() || getDefaultDescription(type),
     category:
         type === 'transfer'
@@ -273,7 +272,7 @@ function TransactionsMobileScreen() {
     loading: transactionsLoading,
     error: transactionsError,
     refreshTransactions,
-  } = useTransactions();
+  } = useOperationalTransactions();
 
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedFilter, setSelectedFilter] =

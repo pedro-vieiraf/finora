@@ -3,11 +3,14 @@ import { apiRequest } from './api';
 export type AccountType = 'CHECKING' | 'SAVINGS';
 export type AccountStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
+export type AccountSource = 'MANUAL' | 'OPEN_FINANCE';
+
 export interface Account {
   id: string;
   name: string;
   type: AccountType;
   status: AccountStatus;
+  source?: AccountSource;
   balance: number;
 }
 
