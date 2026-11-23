@@ -42,6 +42,24 @@ The API listens on port 8080. PostgreSQL stores its data in a named Docker volum
 
 For an existing installation, keep using its current Compose project name. The checkout directory normally determines that name, so changing the folder can cause Compose to select a different database volume. The GitHub rename only requires updating the remote URL.
 
+### Use an existing Neon database
+
+Finora connects to Neon from Spring Boot through PostgreSQL JDBC. The mobile app calls the Finora REST API. Host the Java API separately to make it reachable outside your local network.
+
+Authenticate with `neon login`, link the checkout to your Neon project and branch, and run `neon deploy` from the repository root. Keep the generated `.env.local` or `.env` private. The launcher uses the pooled `DATABASE_URL` with verified TLS. [Neon connection guide](https://neon.com/docs/connect/connect-from-any-app)
+
+```bash
+npm ci
+npm --prefix frontend ci
+npm run build
+# Generate a private access key and set FINORA_API_TOKEN before starting.
+SERVER_PORT=8081 npm run start:neon
+```
+
+The build packages the Spring Boot JAR and exports the Expo JavaScript bundle for Android. Supply the Java API address through the frontend configuration below before creating a bundle for a device.
+
+The `neon` profile disables Hibernate schema changes and SQL initialization. The target database must already contain the Finora schema. On a Java host, you can also set `SPRING_PROFILES_ACTIVE=neon` and supply `SPRING_DATASOURCE_URL` as a JDBC URL, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` through the host's environment and secret settings.
+
 ### Start the app
 
 Create `frontend/.env` for your own checkout:
@@ -106,7 +124,13 @@ The backend serializes concurrent balance mutations with database locks. Account
 | `/credit-cards/{cardId}/invoices` | Read manual card invoices and access their payments. |
 | `GET /credit-cards/open-finance/bills` | Read connected card bills and itemized forecasts. |
 
-The API is intended for a trusted, personal environment. Multi-user authentication and authorization are outside the current scope.
+### Protect a hosted API
+
+The Neon profile and Render require a private access key. Generate a random 32-byte key with `openssl rand -hex 32`, keep it in your password manager, and set it as `FINORA_API_TOKEN` in the Java server's secret environment. The service rejects requests without the matching bearer token. The key is shared by this single-user installation.
+
+In the Expo configuration, set `EXPO_PUBLIC_API_AUTH_REQUIRED=true` and point `EXPO_PUBLIC_API_URL` to the hosted API's HTTPS URL. If `EXPO_PUBLIC_API_URL_ANDROID` is set, update it too. Enter the private key on the Finora sign-in screen. The app keeps the key in memory for the current session. Expo public variables contain the API URL and the sign-in flag only.
+
+On Render, keep `SPRING_PROFILES_ACTIVE=neon`, set `SERVER_PORT=10000`, and supply the Neon JDBC URL, role, and password through the service environment. The default TCP health check works with the protected API. Local Docker development continues to work without a key unless one is configured.
 
 ## Testing
 

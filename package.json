@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@neon/config": "^1.14.6",
+    "@neon/env": "^2.1.9"
+  },
+  "private": true,
+  "scripts": {
+    "build": "mvn -B -f backend/pom.xml -DskipTests package && npm --prefix frontend run build",
+    "start:neon": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/start-neon.mjs",
+    "test:neon": "node --test scripts/start-neon.test.mjs"
+  }
+}
