@@ -455,9 +455,6 @@ export function DesktopInvoiceDetails() {
             </Text>
           </View>
 
-          <Text style={styles.summaryHint}>
-            Valores calculados e enviados pelo backend.
-          </Text>
         </View>
       </View>
 
@@ -725,8 +722,7 @@ export function DesktopInvoiceDetails() {
       </View>
 
       <Text style={styles.disclaimer}>
-        Pagamentos de fatura reduzem o saldo da conta utilizada. Os valores e a
-        distribuição das parcelas são calculados pelo backend.
+        Ao registrar o pagamento, o valor é descontado da conta escolhida.
       </Text>
 
       {paymentOpen ? (
@@ -997,15 +993,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
-    fontFamily: desktopFont,
-  },
-  summaryHint: {
-    flexGrow: 1,
-    flexShrink: 1,
-    minWidth: 180,
-    color: desktopColors.textMuted,
-    fontSize: 10,
-    textAlign: 'right',
     fontFamily: desktopFont,
   },
   sectionHeader: {

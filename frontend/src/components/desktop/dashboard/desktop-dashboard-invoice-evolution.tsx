@@ -47,7 +47,6 @@ export function DesktopDashboardInvoiceEvolution() {
     evolution,
     evolutionPeriod,
     hasEvolutionData,
-    hasForecast,
     loading,
     error,
     invoicesError,
@@ -98,7 +97,7 @@ export function DesktopDashboardInvoiceEvolution() {
 
         <View style={styles.legend}>
           <View style={styles.legendDot} />
-          <Text style={styles.legendLabel}>{hasForecast ? 'Inclui previsões e estimativas' : 'Total restante por mês'}</Text>
+          <Text style={styles.legendLabel}>Total restante por mês</Text>
         </View>
       </View>
 

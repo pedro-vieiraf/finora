@@ -12,6 +12,7 @@
     "expo-image": "~58.0.18",
     "expo-linking": "~58.0.17",
     "expo-router": "~58.0.31",
+    "expo-secure-store": "~58.0.3",
     "expo-splash-screen": "~58.0.14",
     "expo-status-bar": "~58.0.5",
     "expo-symbols": "~58.0.5",
@@ -41,7 +42,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --experimental-strip-types --test src/utils/transaction-sort.test.ts src/utils/credit-cards.test.ts src/utils/credit-card-form.test.ts src/utils/credit-card-purchase-form.test.ts src/utils/credit-card-payment-form.test.ts src/utils/upcoming-commitments.test.ts"
+    "test": "node --experimental-strip-types --test src/utils/transaction-sort.test.ts src/utils/credit-cards.test.ts src/utils/credit-card-form.test.ts src/utils/credit-card-purchase-form.test.ts src/utils/credit-card-payment-form.test.ts src/utils/upcoming-commitments.test.ts src/services/remembered-api-access.test.ts"
   },
   "private": true
 }

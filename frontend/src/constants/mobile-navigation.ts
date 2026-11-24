@@ -29,7 +29,7 @@ export const MOBILE_NAV_ITEMS = [
   {
     route: 'index',
     href: '/',
-    label: 'Dashboard',
+    label: 'Início',
     icon: { ios: 'house', android: 'home', web: 'home' },
     sf: { default: 'house', selected: 'house.fill' },
     md: { default: 'home', selected: 'home_filled' },

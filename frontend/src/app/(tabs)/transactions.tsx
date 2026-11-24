@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 
 import { useOperationalTransactions } from '@/hooks/use-operational-transactions';
 import {
@@ -21,9 +22,11 @@ import {
   getCategories,
   type Category,
 } from '../../services/categories-api';
-import type {
-  Transaction as ApiTransaction,
-  TransactionType as ApiTransactionType,
+import {
+  getPendingBankDebits,
+  type PendingBankDebit,
+  type Transaction as ApiTransaction,
+  type TransactionType as ApiTransactionType,
 } from '../../services/transactions-api';
 import { DesktopTransactions } from '@/components/desktop/transactions/desktop-transactions';
 import { MobileScreenHeader } from '@/components/mobile/mobile-screen-header';
@@ -34,7 +37,8 @@ import {
 import { useFeedback } from '@/contexts/feedback-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
-import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
+import { mobileIcons } from '@/constants/mobile-icons';
+import { mobileColors, mobileFont, mobileLayout, mobileTouchTarget } from '@/constants/mobile-theme';
 import { maskMoney } from '@/utils/privacy';
 import { sortTransactionsByTimestampDescending } from '../../utils/transaction-sort';
 
@@ -51,7 +55,6 @@ type Transaction = {
   amount: number;
   currency: string;
   type: TransactionType;
-  icon: string;
   isRecurring: boolean;
 };
 
@@ -151,12 +154,6 @@ function getAmountPrefix(type: TransactionType) {
   return '';
 }
 
-function getTransactionIcon(type: TransactionType) {
-  if (type === 'income') return '↙';
-  if (type === 'transfer') return '↔';
-  return '↗';
-}
-
 function getDefaultDescription(type: TransactionType) {
   if (type === 'income') return 'Receita';
   if (type === 'transfer') return 'Transferência';
@@ -200,7 +197,6 @@ function mapApiTransaction(
     amount: transaction.amount,
     currency: transaction.currency,
     type,
-    icon: getTransactionIcon(type),
     isRecurring: Boolean(transaction.recurrenceId),
   };
 }
@@ -219,7 +215,7 @@ function TransactionRow({
   return (
       <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Editar ${transaction.description}`}
+          accessibilityLabel={`Ver detalhes de ${transaction.description}`}
           onPress={onPress}
           style={({ pressed }) => [
             styles.transactionRow,
@@ -227,9 +223,7 @@ function TransactionRow({
           ]}
       >
         <View style={[styles.transactionIcon, { backgroundColor }]}>
-          <Text style={styles.transactionIconText}>
-            {transaction.icon}
-          </Text>
+          <SymbolView name={mobileIcons[transaction.type]} size={19} tintColor={color} />
         </View>
 
         <View style={styles.transactionDetails}>
@@ -239,7 +233,7 @@ function TransactionRow({
             </Text>
             {transaction.isRecurring ? (
               <View style={styles.recurringBadge}>
-                <Text style={styles.recurringBadgeText}>↻ Recorrente</Text>
+                <Text style={styles.recurringBadgeText}>Recorrente</Text>
               </View>
             ) : null}
           </View>
@@ -281,6 +275,7 @@ function TransactionsMobileScreen() {
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [pendingDebits, setPendingDebits] = useState<PendingBankDebit[]>([]);
   const [referencesLoading, setReferencesLoading] = useState(true);
   const [screenError, setScreenError] = useState<string | null>(null);
 
@@ -320,17 +315,30 @@ function TransactionsMobileScreen() {
   useFocusEffect(
       useCallback(() => {
         void loadScreenData();
+        let active = true;
+        function refreshPendingDebits() {
+          void getPendingBankDebits().then((debits) => {
+            if (active) setPendingDebits(debits);
+          }).catch(() => {
+            // A indisponibilidade dos pendentes não bloqueia o histórico.
+          });
+        }
+        refreshPendingDebits();
 
         // O scheduler do backend pode gerar ocorrências recorrentes enquanto
         // esta tela permanece aberta. Atualiza silenciosamente para que elas
         // apareçam no histórico sem exigir troca de aba ou recarga manual.
         const intervalId = setInterval(() => {
+          refreshPendingDebits();
           void refreshTransactions({ silent: true }).catch(() => {
             // O erro já fica disponível no estado do context.
           });
         }, 10_000);
 
-        return () => clearInterval(intervalId);
+        return () => {
+          active = false;
+          clearInterval(intervalId);
+        };
       }, [loadScreenData, refreshTransactions]),
   );
 
@@ -378,6 +386,14 @@ function TransactionsMobileScreen() {
     selectedMonth.getFullYear(),
     String(selectedMonth.getMonth() + 1).padStart(2, '0'),
   ].join('-');
+
+  const visiblePendingDebits = pendingDebits.filter((debit) => {
+    if (selectedFilter !== 'all' && selectedFilter !== 'expense') return false;
+    if (!getLocalDateKey(debit.timestamp).startsWith(monthKey)) return false;
+    const account = accountsById.get(debit.accountId);
+    const text = `${debit.description ?? 'Débito no cartão'} ${account?.name ?? ''}`;
+    return text.toLocaleLowerCase('pt-BR').includes(searchQuery.trim().toLocaleLowerCase('pt-BR'));
+  });
 
   const monthTransactions = useMemo(
       () =>
@@ -519,7 +535,7 @@ function TransactionsMobileScreen() {
                 onPress={() => setMonthOffset((current) => current - 1)}
                 style={styles.monthArrow}
             >
-              <Text style={styles.monthArrowText}>‹</Text>
+              <SymbolView name={mobileIcons.previous} size={22} tintColor={COLORS.primary} />
             </Pressable>
 
             <Text style={styles.monthTitle}>
@@ -538,7 +554,7 @@ function TransactionsMobileScreen() {
                   monthOffset === 0 && styles.disabledArrow,
                 ]}
             >
-              <Text style={styles.monthArrowText}>›</Text>
+              <SymbolView name={mobileIcons.next} size={22} tintColor={COLORS.primary} />
             </Pressable>
           </View>
 
@@ -596,7 +612,7 @@ function TransactionsMobileScreen() {
 
           <View style={styles.transferSummary}>
             <View style={styles.transferIcon}>
-              <Text style={styles.transferIconText}>↔</Text>
+              <SymbolView name={mobileIcons.transfer} size={19} tintColor={COLORS.transfer} />
             </View>
             <View style={styles.transferDetails}>
               <Text style={styles.transferTitle}>Transferências</Text>
@@ -620,7 +636,7 @@ function TransactionsMobileScreen() {
           </View>
 
           <View id="search-field-transactions-mobile" style={styles.searchContainer}>
-            <Text style={styles.searchIcon}>⌕</Text>
+            <SymbolView name={mobileIcons.search} size={20} tintColor={COLORS.secondary} />
             <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -635,9 +651,9 @@ function TransactionsMobileScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Limpar busca"
                     onPress={() => setSearchQuery('')}
-                    hitSlop={8}
+                    style={styles.searchClearButton}
                 >
-                  <Text style={styles.clearSearch}>×</Text>
+                  <SymbolView name={mobileIcons.close} size={20} tintColor={COLORS.secondary} />
                 </Pressable>
             )}
           </View>
@@ -674,6 +690,28 @@ function TransactionsMobileScreen() {
             })}
           </ScrollView>
 
+          {visiblePendingDebits.length > 0 ? (
+            <View style={styles.pendingSection}>
+              <Text style={styles.sectionTitle}>Débitos pendentes</Text>
+              <Text style={styles.pendingMeta}>Entram no resumo após a confirmação do banco.</Text>
+              {visiblePendingDebits.map((debit) => (
+                <View key={`${debit.accountId}:${debit.id}`} style={styles.pendingRow}>
+                  <View style={styles.pendingDetails}>
+                    <Text style={styles.pendingDescription}>
+                      {debit.description || 'Débito no cartão'}
+                    </Text>
+                    <Text style={styles.pendingMeta}>
+                      {accountsById.get(debit.accountId)?.name ?? 'Open Finance'} · {formatDateHeading(getLocalDateKey(debit.timestamp))}
+                    </Text>
+                  </View>
+                  <Text style={styles.pendingDescription}>
+                    {maskMoney(formatCurrency(debit.amount, debit.currency), hidden)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
           {loading ? (
               <View style={styles.statusState}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
@@ -695,9 +733,10 @@ function TransactionsMobileScreen() {
                   <Text style={styles.retryButtonText}>Tentar novamente</Text>
                 </Pressable>
               </View>
-          ) : groupedTransactions.length === 0 ? (
+          ) : groupedTransactions.length === 0 && visiblePendingDebits.length > 0 ? null
+            : groupedTransactions.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyIcon}>⌕</Text>
+                <SymbolView name={mobileIcons.search} size={26} tintColor={COLORS.primary} />
                 <Text style={styles.emptyTitle}>
                   Nenhuma transação encontrada
                 </Text>
@@ -733,10 +772,6 @@ function TransactionsMobileScreen() {
               ))
           )}
 
-          <Text style={styles.disclaimer}>
-            Dados carregados da API da Finora. As contas não estão conectadas
-            automaticamente a instituições financeiras.
-          </Text>
         </ScrollView>
 
         {modalVisible ? (
@@ -763,6 +798,15 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
+  pendingSection: { gap: 8, marginBottom: 16 },
+  pendingRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: 12, backgroundColor: mobileColors.surfaceMuted, padding: 12, borderRadius: 10,
+  },
+  pendingDetails: { flex: 1, gap: 4 },
+  pendingDescription: { color: mobileColors.text, fontFamily: mobileFont, fontWeight: '700' },
+  pendingMeta: { color: mobileColors.textSecondary, fontFamily: mobileFont, fontSize: 12 },
+
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -794,11 +838,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  monthArrowText: {
-    color: COLORS.text,
-    fontSize: 25,
-    lineHeight: 28,
-  },
   disabledArrow: {
     opacity: 0.35,
   },
@@ -821,6 +860,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   summaryBalance: {
+    fontFamily: mobileFont,
     color: COLORS.primary,
     fontSize: 30,
     fontWeight: '800',
@@ -862,6 +902,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   metricValue: {
+    fontFamily: mobileFont,
     fontSize: 14,
     fontWeight: '700',
     marginTop: 8,
@@ -890,11 +931,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 11,
   },
-  transferIconText: {
-    color: COLORS.transfer,
-    fontSize: 20,
-    fontWeight: '700',
-  },
   transferDetails: {
     flex: 1,
   },
@@ -909,6 +945,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   transferAmount: {
+    fontFamily: mobileFont,
     color: COLORS.transfer,
     fontSize: 13,
     fontWeight: '800',
@@ -932,6 +969,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flexDirection: 'row',
+    gap: 8,
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -940,21 +978,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     marginBottom: 13,
   },
-  searchIcon: {
-    color: COLORS.secondary,
-    fontSize: 23,
-    marginRight: 8,
+  searchClearButton: {
+    width: mobileTouchTarget,
+    height: mobileTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchInput: {
+    fontFamily: mobileFont,
     flex: 1,
     color: COLORS.text,
     fontSize: 12,
     paddingVertical: 13,
-  },
-  clearSearch: {
-    color: COLORS.secondary,
-    fontSize: 22,
-    paddingLeft: 8,
   },
   filters: {
     gap: 8,
@@ -1015,9 +1050,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  transactionIconText: {
-    fontSize: 18,
-  },
   transactionDetails: {
     flex: 1,
     minWidth: 0,
@@ -1051,6 +1083,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   transactionAmount: {
+    fontFamily: mobileFont,
     flexShrink: 0,
     fontSize: 12,
     fontWeight: '700',
@@ -1073,11 +1106,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: 24,
     paddingVertical: 36,
-  },
-  emptyIcon: {
-    color: COLORS.primary,
-    fontSize: 32,
-    marginBottom: 12,
   },
   emptyTitle: {
     color: COLORS.text,
@@ -1104,12 +1132,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
-  },
-  disclaimer: {
-    color: COLORS.secondary,
-    fontSize: 10,
-    textAlign: 'center',
-    marginTop: 10,
-    lineHeight: 16,
   },
 });

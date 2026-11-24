@@ -150,3 +150,29 @@ CREATE TABLE IF NOT EXISTS open_finance_transaction_links (
 
 ALTER TABLE open_finance_transaction_links
   DROP CONSTRAINT IF EXISTS open_finance_transaction_links_pkey;
+
+-- Read-only projection of the latest pending debits returned by the provider.
+CREATE TABLE IF NOT EXISTS open_finance_pending_debits (
+  account_id UUID NOT NULL REFERENCES open_finance_account_links (account_id) ON DELETE CASCADE,
+  provider_transaction_id TEXT NOT NULL,
+  amount NUMERIC(19, 2) NOT NULL CHECK (amount > 0),
+  currency VARCHAR(3) NOT NULL,
+  description TEXT,
+  occurred_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (account_id, provider_transaction_id)
+);
+
+-- User-selected subscription forecasts from bank and card charges.
+CREATE TABLE IF NOT EXISTS open_finance_tracked_subscriptions (
+  id UUID PRIMARY KEY,
+  source VARCHAR(4) NOT NULL CHECK (source IN ('BANK', 'CARD')),
+  account_ref UUID NOT NULL,
+  description TEXT NOT NULL,
+  merchant_key TEXT NOT NULL,
+  currency VARCHAR(3) NOT NULL,
+  anchor_day INTEGER NOT NULL CHECK (anchor_day BETWEEN 1 AND 31),
+  initial_amount NUMERIC(19, 2) NOT NULL CHECK (initial_amount > 0),
+  initial_date DATE NOT NULL,
+  account_label TEXT NOT NULL,
+  UNIQUE (source, account_ref, merchant_key, currency)
+);

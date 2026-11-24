@@ -1,21 +1,31 @@
 import { useRef, useState, type PropsWithChildren } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { mobileColors, mobileFont } from '@/constants/mobile-theme';
-import { ApiError, requiresApiToken, signInToApi } from '@/services/api';
+import { useFeedback } from '@/contexts/feedback-context';
+import { API_URL, ApiError, requiresApiToken, signInToApi } from '@/services/api';
+
+import { createRememberedApiAccess } from '@/services/remembered-api-access';
+
+const rememberedAccess = createRememberedApiAccess(API_URL ?? '', SecureStore);
 
 export function ApiAccessGate({ children }: PropsWithChildren) {
+  const { showToast } = useFeedback();
+  const [biometricsAvailable] = useState(
+    () => requiresApiToken && Platform.OS === 'android' && SecureStore.canUseBiometricAuthentication(),
+  );
   const [allowed, setAllowed] = useState(!requiresApiToken);
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const signingIn = useRef(false);
 
-  async function signIn() {
+  async function signIn(useBiometrics = false) {
     if (signingIn.current) return;
 
     const enteredToken = token.trim();
-    if (!/^[0-9a-f]{64}$/i.test(enteredToken)) {
+    if (!useBiometrics && !/^[0-9a-f]{64}$/i.test(enteredToken)) {
       setError('Confira a chave de acesso.');
       return;
     }
@@ -24,13 +34,45 @@ export function ApiAccessGate({ children }: PropsWithChildren) {
     setPending(true);
     setError('');
     try {
-      await signInToApi(enteredToken);
+      let accessKey = enteredToken;
+      if (useBiometrics) {
+        try {
+          accessKey = await rememberedAccess.read() ?? '';
+        } catch {
+          setError('Não foi possível desbloquear. Tente a biometria de novo ou use a chave.');
+          return;
+        }
+        if (!accessKey) {
+          setError('Cole sua chave para ativar o acesso com biometria.');
+          return;
+        }
+      }
+
+      await signInToApi(accessKey);
+      if (!useBiometrics && biometricsAvailable) {
+        try {
+          await rememberedAccess.save(accessKey);
+        } catch {
+          showToast({
+            variant: 'warning',
+            title: 'Acesso não salvo',
+            message: 'Na próxima abertura, entre novamente com sua chave.',
+          });
+        }
+      }
       setToken('');
       setAllowed(true);
     } catch (cause) {
-      setError(cause instanceof ApiError && cause.status === 401
-        ? 'Chave de acesso incorreta.'
-        : 'Não foi possível acessar a API. Confira o endereço HTTPS e tente novamente.');
+      if (cause instanceof ApiError && cause.status === 401) {
+        if (useBiometrics) {
+          await rememberedAccess.remove().catch(() => undefined);
+          setError('A chave salva perdeu a validade. Cole a chave atual para entrar.');
+        } else {
+          setError('Chave de acesso incorreta.');
+        }
+      } else {
+        setError('Não foi possível conectar ao Finora. Tente novamente em instantes.');
+      }
     } finally {
       signingIn.current = false;
       setPending(false);
@@ -67,6 +109,17 @@ export function ApiAccessGate({ children }: PropsWithChildren) {
         >
           <Text style={styles.buttonText}>{pending ? 'Conectando…' : 'Entrar'}</Text>
         </Pressable>
+        {biometricsAvailable ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: pending }}
+            disabled={pending}
+            onPress={() => void signIn(true)}
+            style={styles.biometricButton}
+          >
+            <Text style={styles.biometricLabel}>Entrar com biometria</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -91,5 +144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', minHeight: 48, borderRadius: 10,
     backgroundColor: mobileColors.primary,
   },
+  biometricButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },
+  biometricLabel: { fontFamily: mobileFont, fontWeight: '700', color: mobileColors.primary },
   buttonText: { fontFamily: mobileFont, fontWeight: '700', color: mobileColors.surface },
 });

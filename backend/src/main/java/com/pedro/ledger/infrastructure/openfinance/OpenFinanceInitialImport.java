@@ -41,16 +41,32 @@ final class OpenFinanceInitialImport {
     Money balance = Money.of(account.balance(), currency);
 
     Map<String, Posting> postings = new LinkedHashMap<>();
+    Map<String, Posting> pendingDebits = new LinkedHashMap<>();
     Set<String> cursors = new HashSet<>();
     var page = client.listTransactions(selection.accountId(), from, to);
     while (true) {
       for (var transaction : page.results()) {
-        if (!"POSTED".equals(transaction.status())) {
+        boolean posted = "POSTED".equals(transaction.status());
+        boolean pendingDebit = "PENDING".equals(transaction.status()) && "DEBIT".equals(transaction.type());
+        if (!posted && !pendingDebit) {
           continue;
         }
-        Posting posting = toPosting(transaction, selection, currency);
+        Posting posting;
+        try {
+          posting = toPosting(transaction, selection, currency);
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+          if (pendingDebit) {
+            // An incomplete bank authorization must not block confirmed transactions.
+            continue;
+          }
+          throw exception;
+        }
         LocalDate date = posting.date().atOffset(ZoneOffset.UTC).toLocalDate();
         if (date.isBefore(from) || date.isAfter(to)) {
+          continue;
+        }
+        if (pendingDebit) {
+          pendingDebits.putIfAbsent(posting.externalId(), posting);
           continue;
         }
         var previous = postings.putIfAbsent(posting.externalId(), posting);
@@ -67,7 +83,9 @@ final class OpenFinanceInitialImport {
       page = client.nextPage(page);
     }
 
-    return new AccountImport(selection, type, balance, from, List.copyOf(postings.values()));
+    pendingDebits.keySet().removeAll(postings.keySet());
+    return new AccountImport(selection, type, balance, from, List.copyOf(postings.values()),
+        List.copyOf(pendingDebits.values()));
   }
 
   static List<TransferCandidate> possibleInternalTransfers(List<AccountImport> imports) {
@@ -133,8 +151,14 @@ final class OpenFinanceInitialImport {
   record Selection(String name, UUID itemId, UUID accountId) {}
 
   record AccountImport(
-      Selection selection, AccountType type, Money balance, LocalDate from, List<Posting> postings
-  ) {}
+      Selection selection, AccountType type, Money balance, LocalDate from, List<Posting> postings,
+      List<Posting> pendingDebits
+  ) {
+    AccountImport(Selection selection, AccountType type, Money balance, LocalDate from,
+        List<Posting> postings) {
+      this(selection, type, balance, from, postings, List.of());
+    }
+  }
 
   record Posting(
       String externalId, TransactionType type, Money amount, String description, Instant date

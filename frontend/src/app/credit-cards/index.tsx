@@ -470,9 +470,6 @@ function CreditCardsMobileScreen() {
               </Text>
             </View>
 
-            <Text style={styles.summaryNote}>
-              O limite disponível de cada cartão é individual e vem do backend.
-            </Text>
           </>
         ) : null}
 
@@ -997,13 +994,6 @@ const styles = StyleSheet.create({
   summaryHint: {
     marginTop: 15,
     color: '#B9D3C6',
-    fontSize: 11,
-    lineHeight: 16,
-    fontFamily: mobileFont,
-  },
-  summaryNote: {
-    marginTop: 9,
-    color: colors.secondary,
     fontSize: 11,
     lineHeight: 16,
     fontFamily: mobileFont,

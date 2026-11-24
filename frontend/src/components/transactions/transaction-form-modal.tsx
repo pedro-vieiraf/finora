@@ -31,6 +31,7 @@ import {
 import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
 import { FREQUENCY_OPTIONS } from '@/components/recurrences/recurrence-utils';
+import { TrackSubscriptionButton } from '@/components/recurrences/track-subscription-button';
 import { useFeedback } from '@/contexts/feedback-context';
 import { useRecurrences } from '@/contexts/recurrences-context';
 import { useTransactions } from '@/contexts/transactions-context';
@@ -557,11 +558,11 @@ export function TransactionFormModal({
           mode === 'create' && repeatTransaction
             ? recurrenceStartDate &&
               recurrenceStartDate <= toIsoDate(new Date())
-              ? 'A primeira ocorrência será gerada pelo backend em instantes.'
+              ? 'O primeiro lançamento aparecerá em instantes.'
               : `A primeira ocorrência será gerada em ${formatIsoDate(
                   recurrenceStartDate ?? '',
                 )}.`
-            : 'O saldo foi atualizado pelo servidor.',
+            : 'O saldo da conta foi atualizado.',
       });
     } catch (cause) {
       setFormError(
@@ -1203,9 +1204,7 @@ export function TransactionFormModal({
                   isDesktop && desktopFormStyles.fieldHint,
                 ]}
               >
-                Nenhuma transação avulsa será criada agora. O backend gerará a
-                primeira ocorrência na data inicial e as próximas conforme a
-                frequência.
+                O primeiro lançamento segue a data inicial. Os próximos seguem a frequência escolhida.
               </Text>
             </>
           )}
@@ -1512,9 +1511,7 @@ export function TransactionFormModal({
                   styles.desktopRepeatHint,
                 ]}
               >
-                Nenhuma transação avulsa será criada agora. O backend gerará a
-                primeira ocorrência na data inicial e as próximas conforme a
-                frequência.
+                O primeiro lançamento segue a data inicial. Os próximos seguem a frequência escolhida.
               </Text>
             </>
           ) : null}
@@ -1525,6 +1522,9 @@ export function TransactionFormModal({
 
   const importedFields = (
     <>
+      {!isDesktop && editingTransaction?.type === 'EXPENSE' && editingTransaction.description?.trim() ? (
+        <TrackSubscriptionButton charge={{ source: 'BANK', transactionId: editingTransaction.id }} />
+      ) : null}
       <FormField label="Descrição personalizada" isDesktop={isDesktop}>
         <TextInput
           value={form.description}
@@ -1560,18 +1560,6 @@ export function TransactionFormModal({
       style={styles.formFeedback}
     />
   ) : null;
-
-  const disclaimer = (
-    <Text
-      style={[
-        styles.modalDisclaimer,
-        isDesktop && desktopFormStyles.disclaimer,
-      ]}
-    >
-      Os saldos são atualizados pelo backend após salvar ou excluir uma
-      transação.
-    </Text>
-  );
 
   const deleteDialog = (
     <ConfirmDialog
@@ -1631,7 +1619,6 @@ export function TransactionFormModal({
       >
         {isImported ? importedFields : desktopFields}
         {feedback}
-        {!isImported && disclaimer}
       </DesktopFormModal>
     );
   }
@@ -1711,7 +1698,6 @@ export function TransactionFormModal({
               </Pressable>
             )}
 
-            {!isImported && disclaimer}
           </ScrollView>
 
           {deleteDialog}
@@ -2010,12 +1996,5 @@ const styles = StyleSheet.create({
     color: COLORS.expense,
     fontSize: 13,
     fontWeight: '700',
-  },
-  modalDisclaimer: {
-    color: COLORS.secondary,
-    fontSize: 10,
-    lineHeight: 16,
-    textAlign: 'center',
-    marginTop: 18,
   },
 });

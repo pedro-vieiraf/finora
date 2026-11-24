@@ -897,7 +897,7 @@ export function RecurrenceFormModal({
             saveLabel={saveLabel}
             saving={saving}
             cancelDisabled={saving}
-            hint="As ocorrências são geradas pelo backend. Transações já geradas não são alteradas ao editar a assinatura."
+            hint="Alterações na assinatura valem para as próximas cobranças."
           />
         }
       >
@@ -977,8 +977,7 @@ export function RecurrenceFormModal({
             </Pressable>
 
             <Text style={styles.disclaimer}>
-              As ocorrências são geradas pelo backend. Transações já geradas
-              não são alteradas ao editar a regra.
+              Alterações na assinatura valem para as próximas cobranças.
             </Text>
           </ScrollView>
         </KeyboardAvoidingView>

@@ -643,9 +643,6 @@ export function DesktopCategories() {
         </>
       )}
 
-      <Text style={styles.disclaimer}>
-        As categorias são carregadas do backend da Finora.
-      </Text>
 
       {formTarget ? (
         <DesktopCategoryFormModal
@@ -1012,14 +1009,6 @@ const styles = StyleSheet.create({
     color: desktopColors.primary,
     fontSize: 11,
     fontWeight: '800',
-    fontFamily: desktopFont,
-  },
-  disclaimer: {
-    marginTop: 2,
-    color: desktopColors.textMuted,
-    fontSize: 10,
-    lineHeight: 16,
-    textAlign: 'center',
     fontFamily: desktopFont,
   },
   overlay: {

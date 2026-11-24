@@ -398,8 +398,7 @@ function CreditCardPurchaseDetailsMobileScreen() {
           <Text style={styles.noticeText}>
             Esta compra pertence ao domínio de cartões de crédito. Ela não é
             uma despesa em Transações e não altera o saldo de nenhuma conta; o
-            saldo só é reduzido no pagamento da fatura. A distribuição das
-            parcelas é calculada pelo backend.
+            saldo só é reduzido no pagamento da fatura.
           </Text>
         </View>
 
@@ -419,7 +418,7 @@ function CreditCardPurchaseDetailsMobileScreen() {
         ) : installments.length === 0 ? (
           <View style={styles.stateCard}>
             <Text style={styles.stateDescription}>
-              Esta compra não possui parcelas retornadas pela API.
+              Nenhuma parcela disponível para esta compra.
             </Text>
           </View>
         ) : (

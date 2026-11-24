@@ -25,7 +25,8 @@ import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
 import type { Transaction } from '@/contexts/transactions-context';
 import { useOperationalTransactions } from '@/hooks/use-operational-transactions';
 import { getCategories, type Category } from '@/services/categories-api';
-import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
+import { mobileIcons } from '@/constants/mobile-icons';
+import { mobileColors, mobileFont, mobileLayout, mobileTouchTarget } from '@/constants/mobile-theme';
 import {
   filterTransactionsByMonth,
   getActiveAccounts,
@@ -167,7 +168,7 @@ function getTransactionPalette(type: TransactionType) {
     return {
       color: COLORS.income,
       background: COLORS.incomeBackground,
-      icon: '↙',
+      icon: mobileIcons.income,
       prefix: '+ ',
     };
   }
@@ -176,7 +177,7 @@ function getTransactionPalette(type: TransactionType) {
     return {
       color: COLORS.transfer,
       background: COLORS.transferBackground,
-      icon: '↔',
+      icon: mobileIcons.transfer,
       prefix: '',
     };
   }
@@ -184,7 +185,7 @@ function getTransactionPalette(type: TransactionType) {
   return {
     color: COLORS.expense,
     background: COLORS.expenseBackground,
-    icon: '↗',
+    icon: mobileIcons.expense,
     prefix: '− ',
   };
 }
@@ -426,14 +427,12 @@ function MobileDashboardScreen() {
 
           <View style={styles.balanceFooter}>
             <View style={styles.balanceStatus}>
-              <View style={styles.balanceDot} />
               <Text style={styles.balanceFooterText}>
                 {activeAccounts.length}{' '}
                 {activeAccounts.length === 1 ? 'conta ativa' : 'contas ativas'}
               </Text>
             </View>
 
-            <Text style={styles.balanceFooterMuted}>Saldo consolidado</Text>
           </View>
         </View>
 
@@ -451,7 +450,7 @@ function MobileDashboardScreen() {
               pressed && styles.monthArrowPressed,
             ]}
           >
-            <Text style={styles.monthArrowText}>‹</Text>
+            <SymbolView name={mobileIcons.previous} size={22} tintColor={COLORS.primary} />
           </Pressable>
 
           <Text style={styles.monthLabel}>{formatMonth(selectedMonth)}</Text>
@@ -468,7 +467,7 @@ function MobileDashboardScreen() {
               monthOffset === 0 && styles.disabled,
             ]}
           >
-            <Text style={styles.monthArrowText}>›</Text>
+            <SymbolView name={mobileIcons.next} size={22} tintColor={COLORS.primary} />
           </Pressable>
         </View>
 
@@ -480,9 +479,7 @@ function MobileDashboardScreen() {
                 { backgroundColor: COLORS.incomeBackground },
               ]}
             >
-              <Text style={[styles.summaryIconText, { color: COLORS.income }]}>
-                ↙
-              </Text>
+              <SymbolView name={mobileIcons.income} size={19} tintColor={COLORS.income} />
             </View>
 
             <Text style={styles.summaryLabel}>Receitas</Text>
@@ -503,9 +500,7 @@ function MobileDashboardScreen() {
                 { backgroundColor: COLORS.expenseBackground },
               ]}
             >
-              <Text style={[styles.summaryIconText, { color: COLORS.expense }]}>
-                ↗
-              </Text>
+              <SymbolView name={mobileIcons.expense} size={19} tintColor={COLORS.expense} />
             </View>
 
             <Text style={styles.summaryLabel}>Despesas</Text>
@@ -540,16 +535,13 @@ function MobileDashboardScreen() {
 
         <MobileDashboardInvoices />
 
-        <MobileDashboardUpcomingCommitments />
-
-        <MobileDashboardInvoiceEvolution />
-
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Minhas contas</Text>
 
           <Pressable
             accessibilityRole="button"
             onPress={() => router.navigate('/accounts')}
+            style={styles.sectionAction}
           >
             <Text style={styles.sectionLink}>Ver contas</Text>
           </Pressable>
@@ -558,17 +550,23 @@ function MobileDashboardScreen() {
         {activeAccounts.length > 0 ? (
           <View style={styles.listCard}>
             {activeAccounts.map((account, index) => (
-              <View
+              <Pressable
                 key={account.id}
-                style={[
+                accessibilityRole="button"
+                accessibilityLabel={`Ver extrato de ${account.name}`}
+                onPress={() => router.push({ pathname: '/accounts/[id]', params: { id: account.id } })}
+                style={({ pressed }) => [
                   styles.accountRow,
+                  pressed && styles.pressed,
                   index < activeAccounts.length - 1 && styles.rowDivider,
                 ]}
               >
                 <View style={styles.accountIcon}>
-                  <Text style={styles.accountIconText}>
-                    {account.type === 'CHECKING' ? '▤' : '◫'}
-                  </Text>
+                  <SymbolView
+                    name={account.type === 'CHECKING' ? mobileIcons.bank : mobileIcons.savings}
+                    size={19}
+                    tintColor={COLORS.primary}
+                  />
                 </View>
 
                 <View style={styles.accountInfo}>
@@ -588,7 +586,7 @@ function MobileDashboardScreen() {
                 >
                   {maskMoney(formatCurrency(account.balance), hidden)}
                 </Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         ) : (
@@ -617,6 +615,7 @@ function MobileDashboardScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={() => router.navigate('/transactions')}
+            style={styles.sectionAction}
           >
             <Text style={styles.sectionLink}>Ver todas</Text>
           </Pressable>
@@ -652,14 +651,7 @@ function MobileDashboardScreen() {
                       { backgroundColor: palette.background },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.transactionIconText,
-                        { color: palette.color },
-                      ]}
-                    >
-                      {palette.icon}
-                    </Text>
+                    <SymbolView name={palette.icon} size={19} tintColor={palette.color} />
                   </View>
 
                   <View style={styles.transactionInfo}>
@@ -705,6 +697,8 @@ function MobileDashboardScreen() {
             </Text>
           </View>
         )}
+        <MobileDashboardUpcomingCommitments />
+        <MobileDashboardInvoiceEvolution />
       </ScrollView>
     </SafeAreaView>
   );
@@ -779,13 +773,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   balanceLabel: {
+    fontFamily: mobileFont,
     fontSize: 13,
     fontWeight: '600',
     color: '#D9E8E0',
   },
   balanceToggleButton: {
-    width: 36,
-    height: 36,
+    width: mobileTouchTarget,
+    height: mobileTouchTarget,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -794,6 +789,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   balanceValue: {
+    fontFamily: mobileFont,
     marginTop: 14,
     fontSize: 34,
     fontWeight: '800',
@@ -803,6 +799,8 @@ const styles = StyleSheet.create({
   },
   balanceFooter: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 20,
@@ -815,20 +813,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  balanceDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#8FD3AE',
-  },
   balanceFooterText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#D9E8E0',
-  },
-  balanceFooterMuted: {
-    fontSize: 11,
-    color: '#A9C8B8',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -838,11 +826,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
+    fontFamily: mobileFont,
     fontSize: 18,
     fontWeight: '800',
     color: COLORS.text,
   },
+  sectionAction: { minHeight: mobileTouchTarget, justifyContent: 'center', paddingHorizontal: 4 },
   sectionLink: {
+    fontFamily: mobileFont,
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.primary,
@@ -860,8 +851,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   monthArrow: {
-    width: 38,
-    height: 38,
+    width: mobileTouchTarget,
+    height: mobileTouchTarget,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -869,13 +860,8 @@ const styles = StyleSheet.create({
   monthArrowPressed: {
     backgroundColor: COLORS.primarySoft,
   },
-  monthArrowText: {
-    fontSize: 24,
-    lineHeight: 26,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
   monthLabel: {
+    fontFamily: mobileFont,
     flex: 1,
     textAlign: 'center',
     fontSize: 13,
@@ -903,16 +889,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
-  summaryIconText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
   summaryLabel: {
+    fontFamily: mobileFont,
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.secondary,
   },
   summaryValue: {
+    fontFamily: mobileFont,
     marginTop: 6,
     fontSize: 16,
     fontWeight: '800',
@@ -934,6 +918,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   resultLabel: {
+    fontFamily: mobileFont,
     fontSize: 13,
     fontWeight: '800',
     color: COLORS.text,
@@ -944,6 +929,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
   },
   resultValue: {
+    fontFamily: mobileFont,
     fontSize: 19,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
@@ -973,16 +959,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  accountIconText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
   accountInfo: {
     flex: 1,
     minWidth: 0,
   },
   accountName: {
+    fontFamily: mobileFont,
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.text,
@@ -993,6 +975,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
   },
   accountBalance: {
+    fontFamily: mobileFont,
     marginLeft: 10,
     maxWidth: '45%',
     fontSize: 13,
@@ -1013,15 +996,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  transactionIconText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
   transactionInfo: {
     flex: 1,
     minWidth: 0,
   },
   transactionDescription: {
+    fontFamily: mobileFont,
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.text,
@@ -1032,6 +1012,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
   },
   transactionAmount: {
+    fontFamily: mobileFont,
     marginLeft: 10,
     fontSize: 12,
     fontWeight: '800',

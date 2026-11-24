@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SymbolView } from 'expo-symbols';
 
 import { CurrencyInput } from '@/components/currency-input';
 import { DesktopAccounts } from '@/components/desktop/accounts/desktop-accounts';
@@ -22,7 +23,8 @@ import { useAccounts } from '@/contexts/accounts-context';
 import { useFeedback } from '@/contexts/feedback-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
-import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
+import { mobileIcons } from '@/constants/mobile-icons';
+import { mobileColors, mobileFont, mobileLayout } from '@/constants/mobile-theme';
 import {
   createAccount as createAccountRequest,
   deactivateAccount as deactivateAccountRequest,
@@ -474,7 +476,7 @@ function AccountsMobileScreen() {
           <View style={styles.balanceCard}>
             <View style={styles.balanceHeader}>
               <View style={styles.balanceIcon}>
-                <Text style={styles.balanceIconText}>▤</Text>
+                <SymbolView name={mobileIcons.bank} size={19} tintColor={colors.primary} />
               </View>
               <Text style={styles.balanceLabel}>Saldo das contas ativas</Text>
             </View>
@@ -739,7 +741,7 @@ function AccountsMobileScreen() {
           ) : (
               <View style={styles.emptyCard}>
                 <View style={styles.emptyIcon}>
-                  <Text style={styles.emptyIconText}>⌕</Text>
+                  <SymbolView name={mobileIcons.search} size={25} tintColor={colors.primary} />
                 </View>
 
                 <Text style={styles.emptyTitle}>
@@ -770,9 +772,6 @@ function AccountsMobileScreen() {
               </View>
           )}
 
-          <Text style={styles.disclaimer}>
-            As contas são carregadas do backend da Finora.
-          </Text>
         </ScrollView>
 
         <Modal
@@ -805,7 +804,7 @@ function AccountsMobileScreen() {
                     onPress={closeForm}
                     disabled={saving}
                 >
-                  <Text style={styles.closeButtonText}>×</Text>
+                  <SymbolView name={mobileIcons.close} size={22} tintColor={colors.text} />
                 </Pressable>
               </View>
 
@@ -1006,16 +1005,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  balanceIconText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-  },
   balanceLabel: {
     color: '#E0EEE7',
     fontSize: 13,
     fontWeight: '500',
   },
   balanceAmount: {
+    fontFamily: mobileFont,
+    fontVariant: ['tabular-nums'],
     color: '#FFFFFF',
     fontSize: 30,
     fontWeight: '700',
@@ -1194,6 +1191,8 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   accountBalance: {
+    fontFamily: mobileFont,
+    fontVariant: ['tabular-nums'],
     color: colors.text,
     fontSize: 16,
     fontWeight: '700',
@@ -1248,10 +1247,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 14,
   },
-  emptyIconText: {
-    color: colors.primary,
-    fontSize: 25,
-  },
   emptyTitle: {
     color: colors.text,
     fontSize: 15,
@@ -1276,13 +1271,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
-  },
-  disclaimer: {
-    color: colors.secondary,
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: 'center',
-    marginTop: 22,
   },
   modalOverlay: {
     flex: 1,
@@ -1326,11 +1314,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.input,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  closeButtonText: {
-    color: colors.secondary,
-    fontSize: 23,
-    lineHeight: 25,
   },
   fieldLabel: {
     color: colors.text,

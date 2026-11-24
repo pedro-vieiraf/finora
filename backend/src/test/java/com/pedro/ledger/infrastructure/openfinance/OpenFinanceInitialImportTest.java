@@ -49,25 +49,38 @@ class OpenFinanceInitialImportTest {
   }
 
   @Test
-  void readsAllPagesWithOnlyPostedTransactionsAndDeduplicatesOverlappingPages() {
+  void separatesPendingDebitsFromPostedTransactionsAndDeduplicatesOverlappingPages() {
     var client = mock(PluggyClient.class);
     var first = new PluggyClient.TransactionPage(List.of(
         transaction("expense", "-10.20", "DEBIT", "POSTED"),
-        transaction("pending", "-1.00", "DEBIT", "PENDING")
+        transaction("pending", "-1.00", "DEBIT", "PENDING"),
+        transaction("confirmed-later", "-2.00", "DEBIT", "PENDING"),
+        transaction("pending-income", "3.00", "CREDIT", "PENDING"),
+        transaction("pending-without-amount", "0", "DEBIT", "PENDING")
     ), "?after=abc");
     when(client.listBankAccounts(ITEM)).thenReturn(List.of(bank()));
     when(client.listTransactions(ACCOUNT, FROM, TO)).thenReturn(first);
     when(client.nextPage(first)).thenReturn(new PluggyClient.TransactionPage(List.of(
         transaction("expense", "-10.20", "DEBIT", "POSTED"),
-        transaction("income", "25.01", "CREDIT", "POSTED")
+        transaction("income", "25.01", "CREDIT", "POSTED"),
+        transaction("confirmed-later", "-2.00", "DEBIT", "POSTED")
     ), null));
 
     var result = new OpenFinanceInitialImport(client).prepare(SELECTION, FROM, TO);
 
     assertThat(result.balance()).isEqualTo(Money.of("100.00"));
     assertThat(result.postings()).extracting(OpenFinanceInitialImport.Posting::type)
-        .containsExactly(TransactionType.EXPENSE, TransactionType.INCOME);
+        .containsExactly(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.EXPENSE);
+    assertThat(result.postings()).extracting(OpenFinanceInitialImport.Posting::externalId)
+        .containsExactly("expense", "income", "confirmed-later");
     assertThat(result.postings().getFirst().amount()).isEqualTo(Money.of("10.20"));
+    assertThat(result.pendingDebits()).singleElement().satisfies(debit -> {
+      assertThat(debit.externalId()).isEqualTo("pending");
+      assertThat(debit.amount()).isEqualTo(Money.of("1.00"));
+    });
+    assertThat(OpenFinanceSyncPlan.prepare(List.of(result), java.util.Set.of()).newPostings())
+        .extracting(entry -> entry.posting().externalId())
+        .containsExactly("expense", "income", "confirmed-later");
   }
 
   @Test

@@ -498,10 +498,6 @@ export function DesktopCreditCards() {
             </View>
           </View>
 
-          <Text style={styles.summaryNote}>
-            Indicadores consolidados são apenas informativos. O limite disponível
-            de cada cartão é individual e vem do backend.
-          </Text>
         </>
       ) : null}
 
@@ -1101,13 +1097,6 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
     backgroundColor: desktopColors.border,
-  },
-  summaryNote: {
-    marginTop: -6,
-    color: desktopColors.textMuted,
-    fontSize: 11,
-    lineHeight: 17,
-    fontFamily: desktopFont,
   },
   loadingCard: {
     alignItems: 'center',

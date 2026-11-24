@@ -20,6 +20,19 @@ export interface Transaction {
   occurrenceDate: string | null;
 }
 
+export interface PendingBankDebit {
+  id: string;
+  accountId: string;
+  amount: number;
+  currency: string;
+  description: string | null;
+  timestamp: string;
+}
+
+export function getPendingBankDebits(): Promise<PendingBankDebit[]> {
+  return apiRequest<PendingBankDebit[]>('/transactions/open-finance/pending-debits');
+}
+
 export interface CreateTransactionInput {
   /**
    * Identificador gerado pelo cliente para tornar a criação idempotente.

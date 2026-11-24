@@ -296,7 +296,7 @@ export default function NewTransactionScreen() {
       showToast({
         variant: 'success',
         title: 'Transação salva',
-        message: 'O saldo foi atualizado pelo servidor.',
+        message: 'O saldo da conta foi atualizado.',
       });
 
       router.back();
@@ -324,7 +324,7 @@ export default function NewTransactionScreen() {
           showToast({
             variant: 'success',
             title: 'Transação salva',
-            message: 'O saldo foi atualizado pelo servidor.',
+            message: 'O saldo da conta foi atualizado.',
           });
 
           router.back();
@@ -572,8 +572,7 @@ export default function NewTransactionScreen() {
           <View style={styles.notice}>
             <Text style={styles.noticeTitle}>Importante</Text>
             <Text style={styles.noticeText}>
-              O saldo será atualizado pelo servidor depois que a transação for
-              salva. Transferências movimentam as duas contas e não representam
+              O saldo da conta muda ao salvar a transação. Transferências movimentam as duas contas e não representam
               receita nem despesa no resumo financeiro.
             </Text>
           </View>
