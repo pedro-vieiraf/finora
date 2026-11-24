@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
  * pode ser configurada separadamente (por exemplo, com o IP do computador na
  * rede Tailscale). As demais plataformas continuam usando EXPO_PUBLIC_API_URL.
  */
-const API_URL = Platform.OS === 'android'
+export const API_URL = Platform.OS === 'android'
     ? process.env.EXPO_PUBLIC_API_URL_ANDROID ?? process.env.EXPO_PUBLIC_API_URL
     : process.env.EXPO_PUBLIC_API_URL;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -15,7 +15,7 @@ let apiToken: string | undefined;
 
 export async function signInToApi(token: string): Promise<void> {
   if (!API_URL?.startsWith('https://')) {
-    throw new Error('Configure o endereço HTTPS da API antes de entrar.');
+    throw new Error('Não foi possível conectar ao Finora.');
   }
   await request('/auth/session', {}, token, SIGN_IN_TIMEOUT_MS);
   apiToken = token;
@@ -93,7 +93,7 @@ async function request<T>(
     }
 
     throw new AmbiguousRequestError(
-        'Não foi possível conectar ao servidor. Verifique sua conexão ' +
+        'Não foi possível conectar ao Finora. Verifique sua conexão ' +
         'e tente novamente.',
     );
   } finally {
@@ -102,7 +102,9 @@ async function request<T>(
 
   if (!response.ok) {
     throw new ApiError(
-        `A API retornou HTTP ${response.status} (${response.statusText}).`,
+        response.status === 401
+          ? 'Seu acesso não foi autorizado. Entre novamente.'
+          : 'Não foi possível concluir a solicitação. Tente novamente.',
         response.status,
     );
   }

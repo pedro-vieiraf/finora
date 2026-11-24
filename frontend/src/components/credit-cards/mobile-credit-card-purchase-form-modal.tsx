@@ -249,10 +249,7 @@ export function MobileCreditCardPurchaseFormModal({
                 <Text style={styles.previewText}>
                   {installmentCount && installmentCount >= 2
                     ? `${installmentCount} parcelas. `
-                    : ''}
-                  O backend distribui os valores entre as faturas e ajusta os
-                  centavos para que a soma corresponda exatamente ao valor
-                  total. Os valores oficiais aparecem após o registro.
+                    : ''} Confira os valores de cada parcela após registrar a compra.
                 </Text>
               </View>
             ) : null}

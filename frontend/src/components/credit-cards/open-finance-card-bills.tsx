@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { desktopFont } from '@/components/desktop/desktop-theme';
 import { mobileColors, mobileFont, mobileRadius } from '@/constants/mobile-theme';
+import { TrackSubscriptionButton } from '@/components/recurrences/track-subscription-button';
 import { usePrivacy } from '@/contexts/privacy-context';
 import type {
   OpenFinanceBill,
@@ -23,10 +24,14 @@ function formatAmount(amount: number | null, currency: string | null, hidden: bo
 
 function BillRow({
   bill,
+  cardId,
+  allowTracking,
   fontFamily,
   hidden,
 }: {
   bill: OpenFinanceBill;
+  cardId: string;
+  allowTracking: boolean;
   fontFamily: string;
   hidden: boolean;
 }) {
@@ -93,6 +98,10 @@ function BillRow({
                       ? `Parcela ${entry.installmentNumber}/${entry.totalInstallments}` : null,
                   ].filter(Boolean).join(' · ')}
                 </Text>
+                {allowTracking && entry.direction === 'DEBIT' && entry.description?.trim()
+                    && (entry.totalInstallments ?? 1) <= 1 ? (
+                  <TrackSubscriptionButton charge={{ source: 'CARD', cardId, chargeId: entry.id }} />
+                ) : null}
               </View>
               <Text style={[styles.money, textFont]}>
                 {formatAmount(entry.amount, entry.currency ?? bill.currency, hidden)}
@@ -128,7 +137,7 @@ export function OpenFinanceCardItem({
       {dashboard ? null : card.bills.length === 0 ? (
         <Text style={[styles.meta, textFont]}>Nenhuma fatura disponível no período.</Text>
       ) : card.bills.map((bill) => (
-        <BillRow key={bill.id} bill={bill} fontFamily={fontFamily} hidden={hidden} />
+        <BillRow key={bill.id} bill={bill} cardId={card.id} allowTracking={!desktop} fontFamily={fontFamily} hidden={hidden} />
       ))}
     </View>
   );

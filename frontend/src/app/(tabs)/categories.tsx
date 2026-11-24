@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 
 import { DesktopCategories } from '@/components/desktop/categories/desktop-categories';
 import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
@@ -19,7 +20,8 @@ import { InlineFeedback } from '@/components/feedback/inline-feedback';
 import { MobileScreenHeader } from '@/components/mobile/mobile-screen-header';
 import { useFeedback } from '@/contexts/feedback-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
-import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
+import { mobileIcons } from '@/constants/mobile-icons';
+import { mobileColors, mobileFont, mobileLayout } from '@/constants/mobile-theme';
 import {
   createCategory,
   deleteCategory,
@@ -443,9 +445,6 @@ function CategoriesMobileScreen() {
               </View>
           )}
 
-          <Text style={styles.disclaimer}>
-            As categorias são carregadas do backend da Finora.
-          </Text>
         </ScrollView>
 
         <Modal
@@ -478,7 +477,7 @@ function CategoriesMobileScreen() {
                     onPress={closeForm}
                     disabled={saving}
                 >
-                  <Text style={styles.closeButtonText}>×</Text>
+                  <SymbolView name={mobileIcons.close} size={22} tintColor={colors.text} />
                 </Pressable>
               </View>
 
@@ -612,6 +611,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   summaryAmount: {
+    fontFamily: mobileFont,
+    fontVariant: ['tabular-nums'],
     color: colors.text,
     fontSize: 25,
     fontWeight: '700',
@@ -780,13 +781,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  disclaimer: {
-    color: colors.secondary,
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: 'center',
-    marginTop: 22,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(18, 28, 22, 0.42)',
@@ -829,11 +823,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.input,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  closeButtonText: {
-    color: colors.secondary,
-    fontSize: 23,
-    lineHeight: 25,
   },
   fieldLabel: {
     color: colors.text,

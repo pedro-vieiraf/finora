@@ -142,7 +142,7 @@ export function MobileScreenHeader({
             </Text>
           ) : null}
 
-          <Text style={styles.title} numberOfLines={1}>
+          <Text accessibilityRole="header" style={styles.title} numberOfLines={2}>
             {title}
           </Text>
 
@@ -324,7 +324,7 @@ export function MobileScreenHeader({
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: mobileSpacing.sm,
     marginBottom: mobileSpacing.md,
@@ -352,6 +352,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    flexShrink: 0,
     alignItems: 'center',
     gap: mobileSpacing.xs,
   },

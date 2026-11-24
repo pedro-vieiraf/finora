@@ -13,6 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
 import { DesktopRecurrences } from '@/components/desktop/recurrences/desktop-recurrences';
 import { MobileScreenHeader } from '@/components/mobile/mobile-screen-header';
+import { TrackedSubscriptionsSection } from '@/components/recurrences/tracked-subscriptions-section';
 import { RecurrenceFormModal } from '@/components/recurrences/recurrence-form-modal';
 import {
   RECURRENCE_COLORS,
@@ -26,7 +27,7 @@ import { useFeedback } from '@/contexts/feedback-context';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useRecurrences } from '@/contexts/recurrences-context';
 import { useIsDesktopLayout } from '@/hooks/use-is-desktop-layout';
-import { mobileColors, mobileLayout } from '@/constants/mobile-theme';
+import { mobileColors, mobileFont, mobileLayout } from '@/constants/mobile-theme';
 import { getCategories, type Category } from '@/services/categories-api';
 import type { RecurrenceStatus } from '@/services/recurrences-api';
 import { maskMoney } from '@/utils/privacy';
@@ -179,12 +180,14 @@ function RecurrencesMobileScreen() {
         <MobileScreenHeader
           eyebrow="finora / planejamento"
           title="Assinaturas"
-          subtitle="Organize despesas e receitas que se repetem automaticamente."
+          subtitle="Acompanhe cobranças do Open Finance e organize recorrências manuais."
           primaryAction={{
             accessibilityLabel: 'Adicionar assinatura',
             onPress: openCreateForm,
           }}
         />
+
+        <TrackedSubscriptionsSection />
 
         <View style={styles.summaryCard}>
           <View>
@@ -196,8 +199,7 @@ function RecurrencesMobileScreen() {
 
           <View style={styles.summaryRight}>
             <Text style={styles.summaryHint}>
-              O backend gera cada ocorrência na data programada, mesmo com o
-              aplicativo fechado.
+              As regras manuais geram lançamentos na data programada.
             </Text>
             {refreshing ? (
               <ActivityIndicator size="small" color={COLORS.primary} />
@@ -402,10 +404,6 @@ function RecurrencesMobileScreen() {
           </View>
         )}
 
-        <Text style={styles.disclaimer}>
-          As transações são geradas pelo backend e aparecem no histórico
-          normal de movimentações.
-        </Text>
       </ScrollView>
 
       {formVisible ? (
@@ -452,6 +450,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   summaryValue: {
+    fontFamily: mobileFont,
+    fontVariant: ['tabular-nums'],
     color: COLORS.primary,
     fontSize: 32,
     fontWeight: '800',
@@ -593,6 +593,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   cardAmount: {
+    fontFamily: mobileFont,
     marginLeft: 10,
     fontSize: 13,
     fontWeight: '800',
@@ -642,12 +643,5 @@ const styles = StyleSheet.create({
   },
   statusTextInactive: {
     color: COLORS.inactive,
-  },
-  disclaimer: {
-    color: COLORS.secondary,
-    fontSize: 11,
-    lineHeight: 17,
-    textAlign: 'center',
-    marginTop: 24,
   },
 });

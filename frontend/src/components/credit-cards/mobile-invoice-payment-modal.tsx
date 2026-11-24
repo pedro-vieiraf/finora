@@ -288,10 +288,7 @@ export function MobileInvoicePaymentModal({
             <View style={styles.notice}>
               <Text style={styles.noticeTitle}>Impacto do pagamento</Text>
               <Text style={styles.noticeText}>
-                O valor será debitado do saldo da conta bancária selecionada. O
-                pagamento não cria uma despesa em Transações, pois as compras
-                do cartão já representam as despesas. A fatura, o saldo da
-                conta e o limite do cartão são atualizados pelo backend.
+                O pagamento reduz o saldo da conta escolhida. As compras já aparecem como despesas.
               </Text>
             </View>
 

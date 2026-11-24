@@ -13,6 +13,7 @@ import {
   mobileColors,
   mobileFont,
   mobileRadius,
+  mobileTouchTarget,
 } from '@/constants/mobile-theme';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { useDashboardCreditCards } from '@/hooks/use-dashboard-credit-cards';
@@ -68,7 +69,6 @@ export function MobileDashboardInvoiceEvolution() {
     evolution,
     evolutionPeriod,
     hasEvolutionData,
-    hasForecast,
     loading,
     error,
     invoicesError,
@@ -93,10 +93,6 @@ export function MobileDashboardInvoiceEvolution() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Evolução das faturas</Text>
       </View>
-
-      {hasForecast ? (
-        <InlineFeedback variant="info" message="Inclui previsões do Open Finance e estimativas de parcelas." />
-      ) : null}
 
       {error ? (
         <View style={styles.feedbackBlock}>
@@ -155,7 +151,7 @@ export function MobileDashboardInvoiceEvolution() {
         >
           <View style={styles.periodRow}>
             <Text style={styles.periodLabel}>Total restante por mês</Text>
-            <Text style={styles.periodValue} numberOfLines={1}>
+            <Text style={styles.periodValue}>
               {evolutionPeriod}
             </Text>
           </View>
@@ -298,48 +294,46 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   periodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
+    gap: 4,
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 6,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   periodLabel: {
-    fontSize: 9,
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.muted,
+    color: colors.text,
     fontFamily: mobileFont,
   },
   periodValue: {
-    flexShrink: 1,
-    fontSize: 10,
+    fontSize: 12,
+    lineHeight: 17,
     color: colors.secondary,
     fontFamily: mobileFont,
   },
   bars: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingVertical: 4,
   },
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 9,
+    minHeight: mobileTouchTarget,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   selectedBar: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: mobileColors.primarySoft,
   },
   barRowDivider: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   monthLabel: {
-    width: 28,
-    fontSize: 10,
+    width: 30,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'lowercase',
     color: colors.secondary,
@@ -358,9 +352,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   amount: {
-    width: 96,
+    minWidth: 92,
+    maxWidth: '48%',
     textAlign: 'right',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.text,
     fontVariant: ['tabular-nums'],

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { desktopColors, desktopFont } from '@/components/desktop/desktop-theme';
-import { mobileColors, mobileFont } from '@/constants/mobile-theme';
+import { mobileColors, mobileFont, mobileRadius } from '@/constants/mobile-theme';
 import { usePrivacy } from '@/contexts/privacy-context';
 import {
   getCreditCardInvoice,
@@ -43,12 +43,12 @@ export function InvoiceEvolutionDetails({ month, total, entries, connectedCards,
   );
 
   return (
-    <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+    <View style={[styles.panel, !desktop && styles.mobilePanel, { borderColor: colors.border, backgroundColor: colors.surface }]}>
       <View style={styles.row}>
-        <Text accessibilityRole="header" style={[styles.title, text]}>
+        <Text accessibilityRole="header" style={[styles.title, styles.label, text]}>
           {monthFormatter.format(new Date(`${month}-01T00:00:00Z`))}
         </Text>
-        <Text style={[styles.title, text]}>{maskMoney(money(total), hidden)}</Text>
+        <Text style={[styles.title, styles.amount, text]}>{maskMoney(money(total), hidden)}</Text>
       </View>
       {invoices.length === 0 && forecasts.length === 0 ? (
         <Text style={secondary}>Nenhuma fatura ou previsão para este mês.</Text>
@@ -58,7 +58,7 @@ export function InvoiceEvolutionDetails({ month, total, entries, connectedCards,
         <View key={invoice.id} style={[styles.group, { borderColor: colors.border }]}>
           <View style={styles.row}>
             <Text style={[styles.label, text]}>{card.name} · Em aberto</Text>
-            <Text style={text}>{maskMoney(money(invoice.remainingAmount, invoice.currency), hidden)}</Text>
+            <Text style={[styles.amount, text]}>{maskMoney(money(invoice.remainingAmount, invoice.currency), hidden)}</Text>
           </View>
           {invoice.paidAmount > 0 ? (
             <Text style={secondary}>
@@ -80,7 +80,7 @@ export function InvoiceEvolutionDetails({ month, total, entries, connectedCards,
             <Text style={[styles.label, text]}>
               {card.bankName} · {forecast.estimated ? 'Estimativa' : 'Previsão'}
             </Text>
-            <Text style={text}>{maskMoney(money(forecast.total), hidden)}</Text>
+            <Text style={[styles.amount, text]}>{maskMoney(money(forecast.total), hidden)}</Text>
           </View>
           {forecast.entries?.length ? forecast.entries.map((entry) => (
             <View key={entry.id} style={styles.row}>
@@ -90,7 +90,7 @@ export function InvoiceEvolutionDetails({ month, total, entries, connectedCards,
                   ? ` · ${entry.installmentNumber}/${entry.totalInstallments}` : ''}
               </Text>
               {entry.amount !== null ? (
-                <Text style={text}>{maskMoney(money(entry.amount), hidden)}</Text>
+                <Text style={[styles.amount, text]}>{maskMoney(money(entry.amount), hidden)}</Text>
               ) : null}
             </View>
           )) : (
@@ -130,7 +130,7 @@ function ManualInvoicePurchases({ cardId, invoiceId, text, hidden }: {
             {purchase.description}
             {purchase.installmentCount > 1 ? ` · ${part.number}/${purchase.installmentCount}` : ''}
           </Text>
-          <Text style={text}>{maskMoney(money(part.amount, purchase.currency), hidden)}</Text>
+          <Text style={[styles.amount, text]}>{maskMoney(money(part.amount, purchase.currency), hidden)}</Text>
         </View>
       )),
   );
@@ -140,8 +140,10 @@ function ManualInvoicePurchases({ cardId, invoiceId, text, hidden }: {
 
 const styles = StyleSheet.create({
   panel: { marginTop: 12, padding: 14, borderWidth: 1, borderRadius: 12, gap: 12 },
+  mobilePanel: { padding: 16, borderRadius: mobileRadius.large, gap: 16 },
   title: { fontSize: 14, fontWeight: '700' },
   group: { borderTopWidth: 1, paddingTop: 10, gap: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 },
-  label: { flexShrink: 1 },
+  label: { flexShrink: 1, minWidth: 0 },
+  amount: { textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

@@ -951,8 +951,7 @@ export function DesktopRecurrences() {
       )}
 
       <Text style={styles.disclaimer}>
-        As ocorrências são geradas pelo backend na data programada. Cancelar
-        ou excluir uma assinatura preserva as transações já geradas.
+        Cancelar ou excluir uma assinatura preserva os lançamentos anteriores.
       </Text>
 
       <Modal

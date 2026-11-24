@@ -30,6 +30,7 @@ public class ConnectedCardBills {
 
   private Instant refreshAfter = Instant.MIN;
   private List<Card> cached = List.of();
+  private Map<UUID, List<Entry>> cachedConfirmedCharges = Map.of();
 
   @Autowired
   public ConnectedCardBills(
@@ -57,6 +58,7 @@ public class ConnectedCardBills {
     }
 
     List<Card> cards = new ArrayList<>();
+    Map<UUID, List<Entry>> confirmedCharges = new HashMap<>();
     var seenCards = new HashSet<UUID>();
     for (var bank : store.linkedBanks()) {
       for (var card : client.listCreditCards(bank.selection().itemId())) {
@@ -64,6 +66,7 @@ public class ConnectedCardBills {
           LocalDate today = now.atOffset(ZoneOffset.UTC).toLocalDate();
           var activity = readActivity(card, bank.cutoff(), today);
           var bills = activity.bills();
+          confirmedCharges.put(card.id(), activity.confirmedCharges());
           LocalDate reportedDueDate = card.creditData() == null
               ? null : bankDate(card.creditData().balanceDueDate());
           LocalDate nextDueDate = reportedDueDate != null
@@ -78,8 +81,14 @@ public class ConnectedCardBills {
       }
     }
     cached = List.copyOf(cards);
+    cachedConfirmedCharges = Map.copyOf(confirmedCharges);
     refreshAfter = now.plus(CACHE_DURATION);
     return cached;
+  }
+
+  synchronized Map<UUID, List<Entry>> confirmedCharges() {
+    findAll();
+    return cachedConfirmedCharges;
   }
 
   private CardActivity readActivity(PluggyClient.CreditAccount card, LocalDate cutoff, LocalDate today) {
@@ -131,7 +140,20 @@ public class ConnectedCardBills {
     var forecasts = ConnectedCardForecast.withInstallmentEstimates(
         reported, issued.isEmpty() ? null : issued.getFirst(), firstMonth, lastMonth,
         today, transactions.values());
-    return new CardActivity(issued, forecasts);
+    var confirmedCharges = transactions.values().stream()
+        .filter(transaction -> "POSTED".equals(transaction.status()) && "DEBIT".equals(transaction.type())
+            && transaction.date() != null && transaction.amount() != null
+            && transaction.amount().signum() != 0
+            && !"PAGAMENTO".equals(transaction.operationType())
+            && !"PAGAMENTO_FATURA".equals(transaction.operationType()))
+        .filter(transaction -> transaction.creditCardMetadata() == null
+            || transaction.creditCardMetadata().totalInstallments() == null
+            || transaction.creditCardMetadata().totalInstallments() <= 1)
+        .map(transaction -> new Entry(transaction.id(), transaction.date(), transaction.description(),
+            transaction.type(), transaction.amount().abs(),
+            transaction.currencyCode() == null ? card.currencyCode() : transaction.currencyCode(), null, null))
+        .toList();
+    return new CardActivity(issued, forecasts, confirmedCharges);
   }
 
   private static YearMonth firstUnissuedMonth(List<Bill> bills, LocalDate today) {
@@ -143,7 +165,7 @@ public class ConnectedCardBills {
     return afterLatest.isAfter(current) ? afterLatest : current;
   }
 
-  private record CardActivity(List<Bill> bills, List<Forecast> forecasts) {}
+  private record CardActivity(List<Bill> bills, List<Forecast> forecasts, List<Entry> confirmedCharges) {}
 
   public record Forecast(String month, BigDecimal total, String currency, boolean estimated, List<Entry> entries) {}
 

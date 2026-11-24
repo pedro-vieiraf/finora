@@ -9,6 +9,7 @@ import com.pedro.ledger.domain.transaction.TransactionRepository;
 import com.pedro.ledger.domain.transaction.TransactionSource;
 import com.pedro.ledger.domain.transaction.TransactionType;
 import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -171,6 +172,23 @@ public class OpenFinanceImportStore {
               bank.selection().accountId(), row.getString("provider_transaction_id")), id));
     }
 
+    for (var bank : snapshots) {
+      UUID accountId = localIds.get(bank.selection().accountId());
+      jdbc.update("DELETE FROM open_finance_pending_debits WHERE account_id = ?", accountId);
+      for (var debit : bank.pendingDebits()) {
+        var external = new OpenFinanceSyncPlan.ExternalPosting(bank.selection().accountId(), debit.externalId());
+        if (!imported.contains(external)) {
+          jdbc.update("""
+              INSERT INTO open_finance_pending_debits
+                (account_id, provider_transaction_id, amount, currency, description, occurred_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+              """, accountId, debit.externalId(), debit.amount().amount(),
+              debit.amount().currency().getCurrencyCode(), debit.description(),
+              java.sql.Timestamp.from(debit.date()));
+        }
+      }
+    }
+
     var plan = OpenFinanceSyncPlan.prepare(snapshots, imported);
     for (var entry : plan.newPostings()) {
       var posting = entry.posting();
@@ -181,6 +199,21 @@ public class OpenFinanceImportStore {
     }
     return new SyncResult(plan.newPostings().size(), plan.pendingPairs());
   }
+
+  public List<PendingDebit> pendingDebits() {
+    return jdbc.query("""
+        SELECT p.account_id, p.provider_transaction_id, p.amount, p.currency, p.description, p.occurred_at
+        FROM open_finance_pending_debits p
+        JOIN accounts a ON a.id = p.account_id
+        WHERE a.status = 'ACTIVE' AND a.source = 'OPEN_FINANCE'
+        ORDER BY p.occurred_at DESC, p.account_id, p.provider_transaction_id
+        """, (row, index) -> new PendingDebit(row.getObject("account_id", UUID.class),
+        row.getString("provider_transaction_id"), row.getBigDecimal("amount"), row.getString("currency"),
+        row.getString("description"), row.getTimestamp("occurred_at").toInstant()));
+  }
+
+  public record PendingDebit(UUID accountId, String id, BigDecimal amount, String currency,
+                             String description, Instant timestamp) {}
 
   public record LinkedBank(UUID finoraId, OpenFinanceInitialImport.Selection selection, LocalDate cutoff) {}
 

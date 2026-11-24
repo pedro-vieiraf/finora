@@ -350,7 +350,6 @@ function CreditCardDetailsMobileScreen() {
         <View style={styles.limitsCard}>
           <View style={styles.limitsHeader}>
             <Text style={styles.limitsTitle}>Limites do cartão</Text>
-            <Text style={styles.limitsHint}>Valores do backend</Text>
           </View>
 
           <View style={styles.limitValues}>
@@ -439,8 +438,7 @@ function CreditCardDetailsMobileScreen() {
             </View>
             <Text style={styles.stateTitle}>Nenhuma fatura registrada</Text>
             <Text style={styles.stateDescription}>
-              As faturas aparecem aqui quando o backend gerar os ciclos do
-              cartão.
+              As faturas deste cartão aparecerão aqui quando houver compras registradas.
             </Text>
           </View>
         ) : (
@@ -556,8 +554,7 @@ function CreditCardDetailsMobileScreen() {
         )}
 
         <Text style={styles.disclaimer}>
-          Compras no cartão não reduzem o saldo da conta; o saldo é reduzido
-          apenas no pagamento da fatura. Dados carregados da API da Finora.
+          O saldo da conta diminui quando você paga a fatura.
         </Text>
 
         {purchaseFormOpen ? (
@@ -895,11 +892,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: '700',
-    fontFamily: mobileFont,
-  },
-  limitsHint: {
-    color: colors.secondary,
-    fontSize: 10,
     fontFamily: mobileFont,
   },
   limitValues: {

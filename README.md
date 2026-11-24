@@ -18,6 +18,8 @@ Finora is a personal finance application for tracking bank accounts, cash, trans
 ### How connected accounts work
 
 - The bank-reported balance is authoritative. The import tracks provider transaction IDs to prevent duplicate entries, and the scheduler brings in newly posted transactions.
+- Pending bank debits stay visible in a separate list until the provider confirms them. Only confirmed transactions count toward operating totals.
+- You can track a confirmed bank or card charge as a subscription to estimate the next monthly charge without generating a duplicate transaction.
 - Imported transactions preserve their original financial data. You can add a local category and custom description. A third-party Pix transfer is an expense when it represents an outgoing payment, while a reconciled transfer between your own accounts is internal.
 - Credit card purchases count as spending. For a manual credit card, the account balance changes when you register the invoice payment.
 - Connected cards show bill data and upcoming installments when the provider supplies them. The dashboard labels estimates derived from known installments and identifies the items behind each forecast. Future recurring charges appear as the provider reports them.
@@ -86,7 +88,7 @@ Android app ── HTTPS ──> Spring Boot API (Render) ── verified TLS �
 | `PLUGGY_CLIENT_ID` and `PLUGGY_CLIENT_SECRET` | Optional server-side credentials for the Pluggy integration. |
 | `LEDGER_OPEN_FINANCE_SCHEDULER_ENABLED` | Set to `true` to poll Pluggy for existing bank links. |
 
-The hosted API requires the access key as a bearer token. Enter the key on the Finora sign-in screen. The app keeps it in memory for the current session. The APK contains the public API URL and sign-in flag. Local Docker development can run without a key.
+The hosted API requires the access key as a bearer token. Enter the key on the Finora sign-in screen. On Android, Finora can remember the key in the device’s secure storage and unlock it with biometrics. The key is otherwise kept only for the current session. The APK contains the public API URL and sign-in flag. Local Docker development can run without a key.
 
 On Render's free plan, the API can sleep between requests. A cold start can delay the first screen, and scheduled jobs run only while the API is awake. The Neon database persists independently. Pluggy controls how frequently it collects bank data, and Finora imports transactions once the provider makes them available.
 

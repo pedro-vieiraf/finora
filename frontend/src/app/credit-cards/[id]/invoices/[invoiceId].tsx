@@ -556,8 +556,7 @@ function InvoiceDetailsMobileScreen() {
         )}
 
         <Text style={styles.disclaimer}>
-          Pagamentos de fatura reduzem o saldo da conta utilizada. Os valores e
-          a distribuição das parcelas são calculados pelo backend.
+          Ao registrar o pagamento, o valor é descontado da conta escolhida.
         </Text>
 
         {paymentOpen ? (

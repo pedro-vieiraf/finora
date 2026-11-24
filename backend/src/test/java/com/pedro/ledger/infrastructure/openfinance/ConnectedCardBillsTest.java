@@ -42,7 +42,9 @@ class ConnectedCardBillsTest {
         null, "DEBIT", "POSTED", null, new PluggyClient.CardTransactionMetadata("current", 1, 2, null, null));
     var pending = new PluggyClient.Transaction("pending", card, "Pendente", now, "BRL", BigDecimal.TEN,
         null, "DEBIT", "PENDING");
-    var page = new PluggyClient.TransactionPage(List.of(assigned, pending), "?after=next");
+    var unbilled = new PluggyClient.Transaction("subscription", card, "Assinatura", now, "BRL",
+        BigDecimal.TEN, null, "DEBIT", "POSTED");
+    var page = new PluggyClient.TransactionPage(List.of(assigned, pending, unbilled), "?after=next");
     when(client.listTransactions(card, cutoff, today.plusMonths(6))).thenReturn(page);
     when(client.nextPage(page)).thenReturn(new PluggyClient.TransactionPage(List.of(assigned), null));
 
@@ -63,7 +65,8 @@ class ConnectedCardBillsTest {
         });
       });
     });
-    service.findAll();
+    assertThat(service.confirmedCharges().get(card))
+        .extracting(ConnectedCardBills.Entry::id).containsExactly("subscription");
     verify(client).listCardBills(card);
 
     when(client.listCreditCards(item)).thenReturn(List.of(

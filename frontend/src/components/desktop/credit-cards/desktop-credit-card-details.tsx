@@ -395,9 +395,6 @@ export function DesktopCreditCardDetails() {
         <View style={styles.limitsHeader}>
           <View style={styles.limitsHeading}>
             <Text style={styles.cardLabel}>Limites do cartão</Text>
-            <Text style={styles.limitsHint}>
-              Valores calculados e enviados pelo backend.
-            </Text>
           </View>
 
           <View style={styles.scheduleRow}>
@@ -485,8 +482,7 @@ export function DesktopCreditCardDetails() {
             </View>
             <Text style={styles.stateTitle}>Nenhuma fatura registrada</Text>
             <Text style={styles.stateText}>
-              As faturas aparecem aqui quando o backend gerar os ciclos do
-              cartão.
+              As faturas deste cartão aparecerão aqui quando houver compras registradas.
             </Text>
           </View>
         ) : (
@@ -714,8 +710,7 @@ export function DesktopCreditCardDetails() {
       </View>
 
       <Text style={styles.disclaimer}>
-        Compras no cartão não reduzem o saldo da conta; o saldo é reduzido
-        apenas no pagamento da fatura. Dados carregados da API da Finora.
+        O saldo da conta diminui quando você paga a fatura.
       </Text>
 
       {purchaseFormOpen ? (
@@ -941,12 +936,6 @@ const styles = StyleSheet.create({
     color: desktopColors.text,
     fontSize: 14,
     fontWeight: '800',
-    fontFamily: desktopFont,
-  },
-  limitsHint: {
-    marginTop: 3,
-    color: desktopColors.textMuted,
-    fontSize: 11,
     fontFamily: desktopFont,
   },
   scheduleRow: {

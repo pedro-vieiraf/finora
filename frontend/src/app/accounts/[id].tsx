@@ -825,8 +825,7 @@ function AccountDetailsMobileScreen() {
         )}
 
         <Text style={styles.disclaimer}>
-          Dados carregados da API da Finora. Transferências são exibidas
-          conforme a conta de origem e destino.
+          As transferências aparecem de acordo com a conta em que você está consultando o histórico.
         </Text>
       </ScrollView>
     </SafeAreaView>
