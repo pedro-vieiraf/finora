@@ -44,7 +44,10 @@ class ConnectedCardBillsTest {
         null, "DEBIT", "PENDING");
     var unbilled = new PluggyClient.Transaction("subscription", card, "Assinatura", now, "BRL",
         BigDecimal.TEN, null, "DEBIT", "POSTED");
-    var page = new PluggyClient.TransactionPage(List.of(assigned, pending, unbilled), "?after=next");
+    var pendingBilled = new PluggyClient.Transaction("pending-billed", card, "Mensalidade", now, "BRL",
+        BigDecimal.TEN, null, "DEBIT", "PENDING", null,
+        new PluggyClient.CardTransactionMetadata("current", 1, 1, null, null));
+    var page = new PluggyClient.TransactionPage(List.of(assigned, pending, unbilled, pendingBilled), "?after=next");
     when(client.listTransactions(card, cutoff, today.plusMonths(6))).thenReturn(page);
     when(client.nextPage(page)).thenReturn(new PluggyClient.TransactionPage(List.of(assigned), null));
 
@@ -59,10 +62,10 @@ class ConnectedCardBillsTest {
         assertThat(bill.total()).isEqualByComparingTo("50.00");
         assertThat(bill.payments()).singleElement()
             .satisfies(entry -> assertThat(entry.amount()).isEqualByComparingTo("50.00"));
-        assertThat(bill.entries()).singleElement().satisfies(entry -> {
-          assertThat(entry.id()).isEqualTo("purchase");
-          assertThat(entry.totalInstallments()).isEqualTo(2);
-        });
+        assertThat(bill.entries()).extracting(ConnectedCardBills.Entry::id)
+            .containsExactly("purchase", "pending-billed");
+        assertThat(bill.entries()).extracting(ConnectedCardBills.Entry::subscriptionEligible)
+            .containsExactly(false, true);
       });
     });
     assertThat(service.confirmedCharges().get(card))

@@ -114,7 +114,7 @@ public class ConnectedCardBills {
         entries.get(metadata.billId()).putIfAbsent(transaction.id(), new Entry(
             transaction.id(), transaction.date(), transaction.description(), transaction.type(),
             transaction.amount(), transaction.currencyCode(), metadata.installmentNumber(),
-            metadata.totalInstallments()
+            metadata.totalInstallments(), isSubscriptionCharge(transaction, card.currencyCode(), today)
         ));
       }
       if (page.next() == null) {
@@ -141,19 +141,27 @@ public class ConnectedCardBills {
         reported, issued.isEmpty() ? null : issued.getFirst(), firstMonth, lastMonth,
         today, transactions.values());
     var confirmedCharges = transactions.values().stream()
-        .filter(transaction -> "POSTED".equals(transaction.status()) && "DEBIT".equals(transaction.type())
-            && transaction.date() != null && transaction.amount() != null
-            && transaction.amount().signum() != 0
-            && !"PAGAMENTO".equals(transaction.operationType())
-            && !"PAGAMENTO_FATURA".equals(transaction.operationType()))
-        .filter(transaction -> transaction.creditCardMetadata() == null
-            || transaction.creditCardMetadata().totalInstallments() == null
-            || transaction.creditCardMetadata().totalInstallments() <= 1)
+        .filter(transaction -> "POSTED".equals(transaction.status())
+            && isSubscriptionCharge(transaction, card.currencyCode(), today))
         .map(transaction -> new Entry(transaction.id(), transaction.date(), transaction.description(),
             transaction.type(), transaction.amount().abs(),
             transaction.currencyCode() == null ? card.currencyCode() : transaction.currencyCode(), null, null))
         .toList();
     return new CardActivity(issued, forecasts, confirmedCharges);
+  }
+
+  private static boolean isSubscriptionCharge(PluggyClient.Transaction transaction, String cardCurrency,
+      LocalDate today) {
+    var metadata = transaction.creditCardMetadata();
+    return ("POSTED".equals(transaction.status()) || "PENDING".equals(transaction.status()))
+        && "DEBIT".equals(transaction.type())
+        && transaction.description() != null && !transaction.description().isBlank()
+        && transaction.date() != null && !transaction.date().atOffset(ZoneOffset.UTC).toLocalDate().isAfter(today)
+        && transaction.amount() != null && transaction.amount().signum() != 0
+        && (transaction.currencyCode() != null || cardCurrency != null)
+        && !"PAGAMENTO".equals(transaction.operationType())
+        && !"PAGAMENTO_FATURA".equals(transaction.operationType())
+        && (metadata == null || metadata.totalInstallments() == null || metadata.totalInstallments() <= 1);
   }
 
   private static YearMonth firstUnissuedMonth(List<Bill> bills, LocalDate today) {
@@ -187,6 +195,11 @@ public class ConnectedCardBills {
 
   public record Entry(
       String id, Instant date, String description, String direction, BigDecimal amount, String currency,
-      Integer installmentNumber, Integer totalInstallments
-  ) {}
+      Integer installmentNumber, Integer totalInstallments, boolean subscriptionEligible
+  ) {
+    public Entry(String id, Instant date, String description, String direction, BigDecimal amount,
+        String currency, Integer installmentNumber, Integer totalInstallments) {
+      this(id, date, description, direction, amount, currency, installmentNumber, totalInstallments, false);
+    }
+  }
 }

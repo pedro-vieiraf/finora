@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { ApiError, apiRequest } from './api';
 
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
 
@@ -6,6 +6,7 @@ export type TransactionSource = 'MANUAL' | 'OPEN_FINANCE';
 
 export interface Transaction {
   id: string;
+  pending?: boolean;
   amount: number;
   currency: string;
   type: TransactionType;
@@ -18,19 +19,6 @@ export interface Transaction {
   categoryId: string | null;
   recurrenceId: string | null;
   occurrenceDate: string | null;
-}
-
-export interface PendingBankDebit {
-  id: string;
-  accountId: string;
-  amount: number;
-  currency: string;
-  description: string | null;
-  timestamp: string;
-}
-
-export function getPendingBankDebits(): Promise<PendingBankDebit[]> {
-  return apiRequest<PendingBankDebit[]>('/transactions/open-finance/pending-debits');
 }
 
 export interface CreateTransactionInput {
@@ -56,8 +44,21 @@ export interface UpdateTransactionInput {
   timestamp?: string;
 }
 
-export function getTransactions(): Promise<Transaction[]> {
-  return apiRequest<Transaction[]>('/transactions');
+export async function getTransactions(): Promise<Transaction[]> {
+  try {
+    return await apiRequest<Transaction[]>('/open-finance/statement');
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 404) throw error;
+    return apiRequest<Transaction[]>('/transactions');
+  }
+}
+
+export function reconcileBankTransfer(debitId: string, creditId: string) {
+  return apiRequest<Transaction>('/open-finance/transfers', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ debitId, creditId }),
+  });
 }
 
 export function getTransaction(id: string): Promise<Transaction> {

@@ -83,6 +83,7 @@ export function useDesktopDashboard() {
   } = useAccounts();
   const {
     transactions,
+    statement,
     loading: transactionsLoading,
     error: transactionsError,
     refreshTransactions,
@@ -314,7 +315,7 @@ export function useDesktopDashboard() {
 
   const recentTransactions = useMemo<DashboardTransaction[]>(
     () =>
-      sortTransactionsByTimestampDescending(transactions)
+      sortTransactionsByTimestampDescending(statement)
         .slice(0, 5)
         .map((transaction) => {
           const category =
@@ -346,7 +347,7 @@ export function useDesktopDashboard() {
             isRecurring: Boolean(transaction.recurrenceId),
           };
         }),
-    [accountsById, categoriesById, transactions],
+    [accountsById, categoriesById, statement],
   );
 
   const changeMonth = useCallback((offset: number) => {

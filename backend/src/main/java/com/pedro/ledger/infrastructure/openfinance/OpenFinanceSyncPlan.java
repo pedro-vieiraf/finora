@@ -1,6 +1,5 @@
 package com.pedro.ledger.infrastructure.openfinance;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -10,7 +9,6 @@ record OpenFinanceSyncPlan(List<OpenFinanceInitialImport.AccountPosting> newPost
   static OpenFinanceSyncPlan prepare(
       List<OpenFinanceInitialImport.AccountImport> snapshots, Set<ExternalPosting> imported
   ) {
-    var pending = new HashSet<ExternalPosting>();
     int pairs = 0;
     for (var candidate : OpenFinanceInitialImport.possibleInternalTransfers(snapshots)) {
       var debit = ExternalPosting.of(candidate.debit());
@@ -18,8 +16,6 @@ record OpenFinanceSyncPlan(List<OpenFinanceInitialImport.AccountPosting> newPost
       if (imported.contains(debit) && imported.contains(credit)) {
         continue;
       }
-      pending.add(debit);
-      pending.add(credit);
       pairs++;
     }
 
@@ -27,7 +23,6 @@ record OpenFinanceSyncPlan(List<OpenFinanceInitialImport.AccountPosting> newPost
         .flatMap(snapshot -> snapshot.postings().stream().map(posting ->
             new OpenFinanceInitialImport.AccountPosting(snapshot.selection(), posting)))
         .filter(posting -> !imported.contains(ExternalPosting.of(posting)))
-        .filter(posting -> !pending.contains(ExternalPosting.of(posting)))
         .toList();
     return new OpenFinanceSyncPlan(newPostings, pairs);
   }

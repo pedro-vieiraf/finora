@@ -1,50 +1,75 @@
 import { useState } from 'react';
+import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { mobileColors, mobileFont } from '@/constants/mobile-theme';
+import { mobileColors, mobileFont, mobileRadius, mobileTouchTarget } from '@/constants/mobile-theme';
 import { useFeedback } from '@/contexts/feedback-context';
 import { ApiError } from '@/services/api';
 import { trackSubscription, type SubscriptionCharge } from '@/services/tracked-subscriptions-api';
 
-export function TrackSubscriptionButton({ charge }: { charge: SubscriptionCharge }) {
+export function TrackSubscriptionButton({ charge, description }: {
+  charge: SubscriptionCharge;
+  description: string;
+}) {
   const { showToast } = useFeedback();
-  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'tracked'>('idle');
 
   async function save() {
-    if (saving) return;
-    setSaving(true);
+    if (status !== 'idle') return;
+    setStatus('saving');
     try {
       await trackSubscription(charge);
-      showToast({ variant: 'success', title: 'Assinatura acompanhada' });
+      setStatus('tracked');
+      showToast({ variant: 'success', title: 'Assinatura registrada', message: description });
     } catch (error) {
       showToast({
         variant: 'error',
-        title: 'Não foi possível acompanhar a cobrança',
+        title: 'Não foi possível registrar a assinatura',
         message: error instanceof ApiError && error.status === 404
-          ? 'Use uma cobrança efetivada do Open Finance.'
+          ? 'Esta cobrança não está disponível. Atualize a lista e tente novamente.'
           : 'Tente novamente.',
       });
-    } finally {
-      setSaving(false);
+      setStatus('idle');
     }
   }
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ busy: saving, disabled: saving }}
-      disabled={saving}
+      accessibilityLabel={status === 'tracked'
+        ? `Assinatura registrada: ${description}`
+        : `Registrar ${description} como assinatura`}
+      accessibilityState={{ busy: status === 'saving', disabled: status !== 'idle' }}
+      disabled={status !== 'idle'}
       onPress={() => void save()}
-      style={styles.button}
+      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
+      <SymbolView
+        name={status === 'tracked'
+          ? { ios: 'checkmark', android: 'check', web: 'check' }
+          : { ios: 'repeat', android: 'repeat', web: 'repeat' }}
+        size={16}
+        tintColor={mobileColors.primary}
+      />
       <Text style={styles.label}>
-        {saving ? 'Salvando…' : 'Acompanhar como assinatura'}
+        {status === 'saving' ? 'Salvando…'
+          : status === 'tracked' ? 'Registrada' : 'Registrar como assinatura'}
       </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  button: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
-  label: { color: mobileColors.primary, fontFamily: mobileFont, fontWeight: '700' },
+  button: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: mobileTouchTarget,
+    paddingHorizontal: 12,
+    borderRadius: mobileRadius.small,
+    backgroundColor: mobileColors.primarySoft,
+  },
+  pressed: { opacity: 0.75 },
+  label: { color: mobileColors.primary, fontFamily: mobileFont, fontSize: 12, fontWeight: '700', flexShrink: 1 },
 });

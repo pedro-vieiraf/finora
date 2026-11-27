@@ -200,6 +200,7 @@ function MobileDashboardScreen() {
   } = useAccounts();
   const {
     transactions,
+    statement,
     loading: transactionsLoading,
     error: transactionsError,
     refreshTransactions,
@@ -302,8 +303,8 @@ function MobileDashboardScreen() {
 
   const recentTransactions = useMemo(
     () =>
-      sortTransactionsByTimestampDescending(transactions).slice(0, 5),
-    [transactions],
+      sortTransactionsByTimestampDescending(statement).slice(0, 5),
+    [statement],
   );
 
   const isInitialLoading =

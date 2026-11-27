@@ -18,12 +18,12 @@ Finora is a personal finance application for tracking bank accounts, cash, trans
 ### How connected accounts work
 
 - The bank-reported balance is authoritative. The import tracks provider transaction IDs to prevent duplicate entries, and the scheduler brings in newly posted transactions.
-- Pending bank debits stay visible in a separate list until the provider confirms them. Only confirmed transactions count toward operating totals.
+- Pending bank debits appear in the statement and expense totals. Confirmation replaces the pending entry using the same provider identifier; the bank-reported balance remains authoritative.
 - You can track a confirmed bank or card charge as a subscription to estimate the next monthly charge without generating a duplicate transaction.
 - Imported transactions preserve their original financial data. You can add a local category and custom description. A third-party Pix transfer is an expense when it represents an outgoing payment, while a reconciled transfer between your own accounts is internal.
 - Credit card purchases count as spending. For a manual credit card, the account balance changes when you register the invoice payment.
 - Connected cards show bill data and upcoming installments when the provider supplies them. The dashboard labels estimates derived from known installments and identifies the items behind each forecast. Future recurring charges appear as the provider reports them.
-- Automatic Banrisul CDB applications and redemptions are excluded from operational views. The imported records and the bank-reported balance are preserved.
+- Automatic Banrisul CDB applications and redemptions remain visible in the statement and are excluded from operating totals. The imported records and the bank-reported balance are preserved.
 
 ## Quick start
 

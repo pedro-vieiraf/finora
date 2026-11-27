@@ -16,6 +16,7 @@ type OpenFinanceBillEntry = {
   currency: string | null;
   installmentNumber: number | null;
   totalInstallments: number | null;
+  subscriptionEligible?: boolean;
 };
 
 export type OpenFinanceBill = {
