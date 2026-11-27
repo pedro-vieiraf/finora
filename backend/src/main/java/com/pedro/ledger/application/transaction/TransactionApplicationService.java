@@ -12,6 +12,7 @@ import com.pedro.ledger.domain.transaction.TransactionNotFoundException;
 import com.pedro.ledger.domain.transaction.TransactionProcessor;
 import com.pedro.ledger.domain.transaction.TransactionRepository;
 import com.pedro.ledger.domain.transaction.TransactionSource;
+import com.pedro.ledger.domain.transaction.TransactionStatus;
 import com.pedro.ledger.domain.transaction.TransactionType;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -142,7 +143,10 @@ public class TransactionApplicationService {
   }
 
   public List<Transaction> findAll() {
-    return transactionRepository.findAll();
+    return transactionRepository.findAll().stream()
+        .filter(transaction -> transaction.getSource() != TransactionSource.OPEN_FINANCE
+            || transaction.getStatus() != TransactionStatus.REVERSED)
+        .toList();
   }
 
   public Optional<Transaction> findById(UUID transactionId) {

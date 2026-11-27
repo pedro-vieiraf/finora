@@ -7,11 +7,16 @@ import com.pedro.ledger.domain.account.AccountStatus;
 import com.pedro.ledger.domain.transaction.Transaction;
 import com.pedro.ledger.domain.transaction.TransactionRepository;
 import com.pedro.ledger.domain.transaction.TransactionSource;
+import com.pedro.ledger.domain.transaction.TransactionStatus;
 import com.pedro.ledger.domain.transaction.TransactionType;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -138,10 +143,6 @@ public class OpenFinanceImportStore {
     }
 
     var links = linkedBanks();
-    if (links.size() != snapshots.size()) {
-      throw new IllegalStateException("Os vínculos mudaram durante a sincronização.");
-    }
-
     var localIds = new HashMap<UUID, UUID>();
     Set<OpenFinanceSyncPlan.ExternalPosting> imported = new HashSet<>();
     for (var bank : snapshots) {
@@ -189,15 +190,92 @@ public class OpenFinanceImportStore {
       }
     }
 
+    var corrections = snapshots.stream()
+        .flatMap(bank -> bank.postings().stream()
+            .filter(posting -> imported.contains(
+                new OpenFinanceSyncPlan.ExternalPosting(bank.selection().accountId(), posting.externalId())))
+            .map(posting -> new Object[]{
+                posting.amount().amount(), posting.type().name(),
+                posting.description() == null || posting.description().isBlank() ? null : posting.description().trim(),
+                posting.date().atOffset(ZoneOffset.UTC),
+                localIds.get(bank.selection().accountId()), posting.externalId(),
+            }))
+        .toList();
+    if (!corrections.isEmpty()) {
+      jdbc.batchUpdate("""
+          UPDATE transactions t
+          SET amount = bank.amount, type = bank.type, description = bank.description, timestamp = bank.posted_at
+          FROM open_finance_transaction_links l,
+               (VALUES (CAST(? AS numeric), CAST(? AS varchar), CAST(? AS varchar),
+                        CAST(? AS timestamptz))) AS bank(amount, type, description, posted_at)
+          WHERE l.account_id = ? AND l.provider_transaction_id = ? AND l.transaction_id = t.id
+            AND t.source = 'OPEN_FINANCE' AND t.status = 'ACTIVE'
+            AND t.type IN ('EXPENSE', 'INCOME')
+            AND (t.amount, t.type, t.description, t.timestamp)
+                IS DISTINCT FROM (bank.amount, bank.type, bank.description, bank.posted_at)
+          """, corrections);
+    }
+
     var plan = OpenFinanceSyncPlan.prepare(snapshots, imported);
     for (var entry : plan.newPostings()) {
       var posting = entry.posting();
       UUID accountId = localIds.get(entry.account().accountId());
-      var transaction = save(Transaction.create(posting.amount(), posting.type(), posting.description(),
-          posting.date(), TransactionSource.OPEN_FINANCE, accountId, null, null));
+      var transaction = save(Transaction.createWithId(statementId(accountId, posting.externalId()),
+          posting.amount(), posting.type(), posting.description(), posting.date(),
+          TransactionSource.OPEN_FINANCE, accountId, null, null));
       saveLink(transaction.getId(), accountId, posting.externalId());
     }
     return new SyncResult(plan.newPostings().size(), plan.pendingPairs());
+  }
+
+  @Transactional
+  public Transaction reconcileTransfer(UUID debitId, UUID creditId) {
+    if (debitId.equals(creditId)) {
+      throw new IllegalArgumentException("Escolha dois lançamentos de contas diferentes.");
+    }
+    if (!Boolean.TRUE.equals(jdbc.queryForObject(
+        "SELECT pg_try_advisory_xact_lock(1086218321)", Boolean.class))) {
+      throw new IllegalStateException("Uma sincronização está em andamento. Tente novamente.");
+    }
+
+    var debit = transactions.findByIdForUpdate(debitId)
+        .orElseThrow(() -> new IllegalArgumentException("A saída não está disponível para conciliação."));
+    var credit = transactions.findByIdForUpdate(creditId)
+        .orElseThrow(() -> new IllegalArgumentException("A entrada não está disponível para conciliação."));
+    var zone = ZoneId.of("America/Sao_Paulo");
+    if (!canReconcile(debit, credit, zone)) {
+      throw new IllegalArgumentException("Os lançamentos selecionados não formam uma transferência.");
+    }
+
+    var transfer = Transaction.create(debit.getAmount(), TransactionType.TRANSFER, debit.getDescription(),
+        debit.getTimestamp(), TransactionSource.OPEN_FINANCE, debit.getAccountId(), credit.getAccountId(), null);
+    transfer.changeCustomDescription(debit.getCustomDescription());
+    var saved = save(transfer);
+    int linksUpdated = jdbc.update("""
+        UPDATE open_finance_transaction_links SET transaction_id = ?
+        WHERE (transaction_id = ? AND account_id = ?) OR (transaction_id = ? AND account_id = ?)
+        """, saved.getId(), debitId, debit.getAccountId(), creditId, credit.getAccountId());
+    if (linksUpdated != 2) {
+      throw new IllegalStateException("A conciliação exige um vínculo bancário em cada lançamento.");
+    }
+
+    // Preserve the source records and keep both provider identities on the transfer.
+    // Account balances come from the bank snapshot and need no adjustment here.
+    debit.reverse();
+    credit.reverse();
+    save(debit);
+    save(credit);
+    return saved;
+  }
+
+  static boolean canReconcile(Transaction debit, Transaction credit, ZoneId zone) {
+    return debit.getSource() == TransactionSource.OPEN_FINANCE
+        && credit.getSource() == TransactionSource.OPEN_FINANCE
+        && debit.getStatus() == TransactionStatus.ACTIVE && credit.getStatus() == TransactionStatus.ACTIVE
+        && debit.getType() == TransactionType.EXPENSE && credit.getType() == TransactionType.INCOME
+        && !debit.getAccountId().equals(credit.getAccountId()) && debit.getAmount().equals(credit.getAmount())
+        && Math.abs(ChronoUnit.DAYS.between(debit.getTimestamp().atZone(zone).toLocalDate(),
+            credit.getTimestamp().atZone(zone).toLocalDate())) <= 1;
   }
 
   public List<PendingDebit> pendingDebits() {
@@ -206,14 +284,27 @@ public class OpenFinanceImportStore {
         FROM open_finance_pending_debits p
         JOIN accounts a ON a.id = p.account_id
         WHERE a.status = 'ACTIVE' AND a.source = 'OPEN_FINANCE'
+          AND NOT EXISTS (
+            SELECT 1 FROM open_finance_transaction_links l
+            WHERE l.account_id = p.account_id AND l.provider_transaction_id = p.provider_transaction_id
+          )
         ORDER BY p.occurred_at DESC, p.account_id, p.provider_transaction_id
         """, (row, index) -> new PendingDebit(row.getObject("account_id", UUID.class),
         row.getString("provider_transaction_id"), row.getBigDecimal("amount"), row.getString("currency"),
         row.getString("description"), row.getTimestamp("occurred_at").toInstant()));
   }
 
+  private static UUID statementId(UUID accountId, String providerId) {
+    return UUID.nameUUIDFromBytes(("finora-statement:" + accountId + ":" + providerId)
+        .getBytes(StandardCharsets.UTF_8));
+  }
+
   public record PendingDebit(UUID accountId, String id, BigDecimal amount, String currency,
-                             String description, Instant timestamp) {}
+                             String description, Instant timestamp) {
+    public UUID statementId() {
+      return OpenFinanceImportStore.statementId(accountId, id);
+    }
+  }
 
   public record LinkedBank(UUID finoraId, OpenFinanceInitialImport.Selection selection, LocalDate cutoff) {}
 

@@ -3,6 +3,7 @@ package com.pedro.ledger.infrastructure.openfinance;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,20 +46,23 @@ public class OpenFinanceBankScheduler {
     try {
       var started = clock.instant();
       LocalDate today = started.atOffset(ZoneOffset.UTC).toLocalDate();
-      var snapshots = store.linkedBanks().stream().map(link -> {
-        var status = client.itemStatus(link.selection().itemId());
-        if (!"UPDATED".equals(status.status()) || !"SUCCESS".equals(status.executionStatus())
-            || (status.consentExpiresAt() != null && !status.consentExpiresAt().isAfter(started))) {
-          throw new IllegalStateException("A Pluggy ainda não tem uma atualização completa e autorizada.");
+      for (var link : store.linkedBanks()) {
+        try {
+          var status = client.itemStatus(link.selection().itemId());
+          if (("SUCCESS".equals(status.executionStatus()) || "PARTIAL_SUCCESS".equals(status.executionStatus()))
+              && "UPDATED".equals(status.status())
+              && (status.consentExpiresAt() == null || status.consentExpiresAt().isAfter(started))) {
+            var snapshot = reader.prepare(link.selection(), link.cutoff(), today);
+            var result = store.synchronize(List.of(snapshot), started);
+            LOGGER.info("Open Finance: {} lançamentos novos na conexão.", result.imported());
+          } else {
+            LOGGER.warn("A conexão bancária ainda não está pronta para sincronizar.");
+          }
+        } catch (RuntimeException exception) {
+          LOGGER.warn("Uma conexão bancária falhou e será tentada novamente.");
         }
-        return reader.prepare(link.selection(), link.cutoff(), today);
-      }).toList();
-
-      if (!snapshots.isEmpty()) {
-        var result = store.synchronize(snapshots, started);
-        LOGGER.info("Open Finance: {} lançamentos novos, {} possíveis pares pendentes.",
-            result.imported(), result.pendingPairs());
       }
+
     } catch (RuntimeException exception) {
       LOGGER.warn("A sincronização bancária Open Finance falhou. Será tentada novamente.");
     }

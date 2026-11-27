@@ -31,7 +31,11 @@ import {
 import { ConfirmDialog } from '@/components/feedback/confirm-dialog';
 import { InlineFeedback } from '@/components/feedback/inline-feedback';
 import { FREQUENCY_OPTIONS } from '@/components/recurrences/recurrence-utils';
+import { ReconcileTransfer } from '@/components/transactions/reconcile-transfer';
 import { TrackSubscriptionButton } from '@/components/recurrences/track-subscription-button';
+import { mobileColors, mobileFont } from '@/constants/mobile-theme';
+import { usePrivacy } from '@/contexts/privacy-context';
+import { maskMoney } from '@/utils/privacy';
 import { useFeedback } from '@/contexts/feedback-context';
 import { useRecurrences } from '@/contexts/recurrences-context';
 import { useTransactions } from '@/contexts/transactions-context';
@@ -292,6 +296,7 @@ export function TransactionFormModal({
   const isDesktop = variant === 'desktop';
 
   const { showToast } = useFeedback();
+  const { hidden } = usePrivacy();
   const { createRecurrence } = useRecurrences();
   const {
     transactions: apiTransactions,
@@ -330,7 +335,8 @@ export function TransactionFormModal({
     : undefined;
 
   const isImported = editingTransaction?.source === 'OPEN_FINANCE';
-  const canCategorize = isImported && editingTransaction.type !== 'TRANSFER';
+  const readOnly = editingTransaction?.pending === true;
+  const canCategorize = !readOnly && isImported && editingTransaction.type !== 'TRANSFER';
 
   const deletingDescription = editingTransaction
     ? editingTransaction.description?.trim() ||
@@ -577,7 +583,7 @@ export function TransactionFormModal({
   };
 
   const saveImportedDetails = async () => {
-    if (!editingTransactionId || !isImported || savingRef.current) return;
+    if (!editingTransactionId || !isImported || readOnly || savingRef.current) return;
 
     savingRef.current = true;
     setSaving(true);
@@ -1520,11 +1526,18 @@ export function TransactionFormModal({
     </>
   );
 
-  const importedFields = (
+  const importedFields = readOnly && editingTransaction ? (
+    <FormField label="Descrição do banco" isDesktop={isDesktop}>
+      <Text style={isDesktop ? desktopFormStyles.fieldHint : styles.fieldHint}>
+        {editingTransaction.description || 'Despesa'}
+      </Text>
+      <Text style={isDesktop ? desktopFormStyles.fieldHint : styles.fieldHint}>
+        {maskMoney(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: editingTransaction.currency })
+          .format(editingTransaction.amount), hidden)}
+      </Text>
+    </FormField>
+  ) : (
     <>
-      {!isDesktop && editingTransaction?.type === 'EXPENSE' && editingTransaction.description?.trim() ? (
-        <TrackSubscriptionButton charge={{ source: 'BANK', transactionId: editingTransaction.id }} />
-      ) : null}
       <FormField label="Descrição personalizada" isDesktop={isDesktop}>
         <TextInput
           value={form.description}
@@ -1545,11 +1558,23 @@ export function TransactionFormModal({
       {canCategorize ? categoryField : (
         <Notice isDesktop={isDesktop}>Transferências internas não têm categoria.</Notice>
       )}
+      {editingTransaction?.type === 'EXPENSE' ? (
+        <ReconcileTransfer debit={editingTransaction} accounts={accounts} onDone={onClose} />
+      ) : null}
+      {!isDesktop && editingTransaction?.type === 'EXPENSE' && editingTransaction.description?.trim() ? (
+        <View style={styles.subscriptionAction}>
+          <Text style={styles.subscriptionDescription}>{editingTransaction.description}</Text>
+          <TrackSubscriptionButton
+            charge={{ source: 'BANK', transactionId: editingTransaction.id }}
+            description={editingTransaction.description}
+          />
+        </View>
+      ) : null}
     </>
   );
   const title = mode === 'create'
     ? 'Adicionar transação'
-    : isImported ? 'Editar detalhes' : 'Editar transação';
+    : readOnly ? 'Detalhes da transação' : isImported ? 'Editar detalhes' : 'Editar transação';
   const saveLabel = mode === 'create' ? 'Salvar transação' : 'Salvar alterações';
   const onSave = isImported ? saveImportedDetails : handleSave;
 
@@ -1598,7 +1623,7 @@ export function TransactionFormModal({
         }
         maxWidth={820}
         overlay={deleteDialog}
-        footer={
+        footer={readOnly ? undefined : (
           <DesktopFormActions
             onCancel={closeModal}
             onSave={() => void onSave()}
@@ -1615,7 +1640,7 @@ export function TransactionFormModal({
                 : undefined
             }
           />
-        }
+        )}
       >
         {isImported ? importedFields : desktopFields}
         {feedback}
@@ -1667,6 +1692,7 @@ export function TransactionFormModal({
             {isImported ? importedFields : fields}
             {feedback}
 
+            {!readOnly ? (
             <Pressable
               accessibilityRole="button"
               onPress={() => void onSave()}
@@ -1681,6 +1707,7 @@ export function TransactionFormModal({
                 </Text>
               )}
             </Pressable>
+            ) : null}
 
             {mode === 'edit' && editingTransactionId && !isImported && (
               <Pressable
@@ -1708,6 +1735,15 @@ export function TransactionFormModal({
 }
 
 const styles = StyleSheet.create({
+  subscriptionAction: {
+    padding: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    borderRadius: 14,
+    backgroundColor: mobileColors.surface,
+  },
+  subscriptionDescription: { color: mobileColors.text, fontFamily: mobileFont, fontWeight: '700' },
   modalSafeArea: {
     flex: 1,
     backgroundColor: COLORS.background,

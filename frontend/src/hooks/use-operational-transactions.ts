@@ -13,5 +13,5 @@ export function useOperationalTransactions() {
     [transactions, accounts],
   );
 
-  return { ...context, transactions: operational };
+  return { ...context, transactions: operational, statement: transactions };
 }

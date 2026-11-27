@@ -45,9 +45,15 @@ public class TrackedSubscriptions {
   public void trackCard(UUID cardId, String chargeId) {
     var card = cardBills.findAll().stream().filter(item -> item.id().equals(cardId)).findFirst()
         .orElseThrow(TrackedSubscriptions::missingCharge);
-    track("CARD", cardCharges(cardBills.confirmedCharges(), cardId, card.bankName()).stream()
-        .filter(charge -> charge.id().equals(chargeId)).findFirst()
-        .orElseThrow(TrackedSubscriptions::missingCharge));
+    var confirmed = cardCharges(cardBills.confirmedCharges(), cardId, card.bankName()).stream()
+        .filter(charge -> charge.id().equals(chargeId)).findFirst();
+    var charge = confirmed.or(() -> card.bills().stream()
+        .flatMap(bill -> bill.entries().stream()
+            .filter(entry -> entry.id().equals(chargeId) && entry.subscriptionEligible())
+            .map(entry -> new Charge(entry.id(), card.id(), entry.description(), entry.amount().abs(),
+                entry.currency() == null ? bill.currency() : entry.currency(), entry.date(), card.bankName())))
+        .findFirst()).orElseThrow(TrackedSubscriptions::missingCharge);
+    track("CARD", charge);
   }
 
   public void remove(UUID id) {
@@ -69,7 +75,7 @@ public class TrackedSubscriptions {
       try {
         cardData = cardBills.confirmedCharges();
       } catch (RuntimeException exception) {
-        // Keep the original estimate when the provider is unavailable.
+        // Keep the last known estimate when the provider is unavailable.
       }
     }
     var today = clock.instant().atZone(DISPLAY_ZONE).toLocalDate();
@@ -79,8 +85,23 @@ public class TrackedSubscriptions {
       var charges = bank ? bankCharges(item)
           : cardCharges(loadedCharges, item.accountRef(), item.accountLabel());
       boolean available = bank || loadedCharges.containsKey(item.accountRef());
-      return summarize(item, charges, today, available);
+      var summary = summarize(item, charges, today, available);
+      if (!bank && summary.lastChargeId() != null && (summary.lastChargeDate().isAfter(item.initialDate())
+          || summary.amount().compareTo(item.initialAmount()) != 0)) {
+        rememberCardCharge(item, summary);
+      }
+      return summary;
     }).toList();
+  }
+
+  private void rememberCardCharge(Tracked item, Subscription summary) {
+    // The anchor day is the original billing day. The stored date and amount are the
+    // latest known charge and serve as a fallback whenever the provider is unavailable.
+    jdbc.update("""
+        UPDATE open_finance_tracked_subscriptions
+        SET initial_amount = ?, initial_date = ?
+        WHERE id = ? AND initial_date = ? AND initial_amount = ?
+        """, summary.amount(), summary.lastChargeDate(), item.id(), item.initialDate(), item.initialAmount());
   }
 
   private List<Charge> bankCharges(Tracked item) {
@@ -146,7 +167,7 @@ public class TrackedSubscriptions {
   }
 
   private static ResponseStatusException missingCharge() {
-    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Cobrança importada indisponível.");
+    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Esta cobrança não está disponível para registrar como assinatura.");
   }
 
   record Tracked(UUID id, String source, UUID accountRef, String description, String merchantKey,

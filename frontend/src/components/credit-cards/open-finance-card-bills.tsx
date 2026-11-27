@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { desktopFont } from '@/components/desktop/desktop-theme';
@@ -36,6 +37,7 @@ function BillRow({
   hidden: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [selectedCharge, setSelectedCharge] = useState<string | null>(null);
   const textFont = { fontFamily };
   const date = formatDateKey(bill.dueDate);
 
@@ -86,28 +88,60 @@ function BillRow({
             <Text style={[styles.meta, textFont]}>
               O banco não retornou lançamentos vinculados a esta fatura no período.
             </Text>
-          ) : bill.entries.map((entry) => (
-            <View key={entry.id} style={styles.detailRow}>
-              <View style={styles.detailLabel}>
-                <Text style={[styles.entryName, textFont]}>{entry.description || 'Lançamento do cartão'}</Text>
-                <Text style={[styles.meta, textFont]}>
-                  {[
-                    entry.date ? formatDateKey(entry.date.slice(0, 10)) : null,
-                    entry.direction === 'CREDIT' ? 'Crédito' : entry.direction === 'DEBIT' ? 'Débito' : null,
-                    entry.installmentNumber && entry.totalInstallments
-                      ? `Parcela ${entry.installmentNumber}/${entry.totalInstallments}` : null,
-                  ].filter(Boolean).join(' · ')}
+          ) : bill.entries.map((entry) => {
+            const description = entry.description || 'Lançamento do cartão';
+            const canRegister = allowTracking && entry.subscriptionEligible === true;
+            const expandedCharge = selectedCharge === entry.id;
+            const row = (
+              <>
+                <View style={styles.detailLabel}>
+                  <Text style={[styles.entryName, textFont]}>{description}</Text>
+                  <Text style={[styles.meta, textFont]}>
+                    {[
+                      entry.date ? formatDateKey(entry.date.slice(0, 10)) : null,
+                      entry.direction === 'CREDIT' ? 'Crédito' : entry.direction === 'DEBIT' ? 'Débito' : null,
+                      entry.installmentNumber && entry.totalInstallments
+                        ? `Parcela ${entry.installmentNumber}/${entry.totalInstallments}` : null,
+                    ].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <Text style={[styles.money, textFont]}>
+                  {formatAmount(entry.amount, entry.currency ?? bill.currency, hidden)}
                 </Text>
-                {allowTracking && entry.direction === 'DEBIT' && entry.description?.trim()
-                    && (entry.totalInstallments ?? 1) <= 1 ? (
-                  <TrackSubscriptionButton charge={{ source: 'CARD', cardId, chargeId: entry.id }} />
+              </>
+            );
+
+            return (
+              <View key={entry.id} style={styles.chargeCard}>
+                {canRegister ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Detalhes de ${description}, ${formatAmount(entry.amount, entry.currency ?? bill.currency, hidden)}`}
+                    accessibilityState={{ expanded: expandedCharge }}
+                    onPress={() => setSelectedCharge(expandedCharge ? null : entry.id)}
+                    style={({ pressed }) => [styles.chargeRow, pressed && styles.pressed]}
+                  >
+                    {row}
+                    <SymbolView
+                      name={expandedCharge
+                        ? { ios: 'chevron.up', android: 'expand_less', web: 'expand_less' }
+                        : { ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }}
+                      size={16}
+                      tintColor={mobileColors.textSecondary}
+                    />
+                  </Pressable>
+                ) : <View style={styles.chargeRow}>{row}</View>}
+                {canRegister && expandedCharge ? (
+                  <View style={styles.chargeAction}>
+                    <TrackSubscriptionButton
+                      charge={{ source: 'CARD', cardId, chargeId: entry.id }}
+                      description={description}
+                    />
+                  </View>
                 ) : null}
               </View>
-              <Text style={[styles.money, textFont]}>
-                {formatAmount(entry.amount, entry.currency ?? bill.currency, hidden)}
-              </Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
       ) : null}
     </View>
@@ -214,8 +248,25 @@ const styles = StyleSheet.create({
   total: { color: mobileColors.primary, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   details: { gap: 8, paddingBottom: 12 },
   detailTitle: { color: mobileColors.text, fontSize: 13, fontWeight: '700', marginTop: 5 },
+  chargeCard: {
+    borderBottomWidth: 1,
+    borderBottomColor: mobileColors.border,
+  },
+  chargeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 48,
+    gap: 10,
+    paddingVertical: 9,
+  },
+  chargeAction: {
+    marginBottom: 10,
+    padding: 10,
+    borderRadius: mobileRadius.medium,
+    backgroundColor: mobileColors.surfaceMuted,
+  },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   detailLabel: { flex: 1, color: mobileColors.text, fontSize: 13 },
-  entryName: { color: mobileColors.text, fontSize: 13 },
+  entryName: { color: mobileColors.text, fontSize: 13, fontWeight: '700' },
   money: { color: mobileColors.text, fontSize: 13, fontVariant: ['tabular-nums'] },
 });

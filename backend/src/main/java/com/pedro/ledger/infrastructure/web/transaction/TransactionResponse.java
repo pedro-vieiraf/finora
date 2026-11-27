@@ -35,7 +35,8 @@ public record TransactionResponse(
     UUID categoryId,
     UUID recurrenceId,
     LocalDate occurrenceDate,
-    String customDescription
+    String customDescription,
+    boolean pending
 ) {
 
   public static TransactionResponse from(Transaction transaction) {
@@ -52,7 +53,8 @@ public record TransactionResponse(
         transaction.getCategoryId(),
         transaction.getRecurrenceId(),
         transaction.getOccurrenceDate(),
-        transaction.getCustomDescription()
+        transaction.getCustomDescription(),
+        false
     );
   }
 }

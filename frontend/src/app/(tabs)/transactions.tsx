@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
-import { useOperationalTransactions } from '@/hooks/use-operational-transactions';
+import { useTransactions } from '@/contexts/transactions-context';
+import { filterOperationalTransactions } from '@/utils/operational-transactions';
 import {
   getAccounts,
   type Account,
@@ -23,8 +24,6 @@ import {
   type Category,
 } from '../../services/categories-api';
 import {
-  getPendingBankDebits,
-  type PendingBankDebit,
   type Transaction as ApiTransaction,
   type TransactionType as ApiTransactionType,
 } from '../../services/transactions-api';
@@ -266,7 +265,7 @@ function TransactionsMobileScreen() {
     loading: transactionsLoading,
     error: transactionsError,
     refreshTransactions,
-  } = useOperationalTransactions();
+  } = useTransactions();
 
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedFilter, setSelectedFilter] =
@@ -275,7 +274,6 @@ function TransactionsMobileScreen() {
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [pendingDebits, setPendingDebits] = useState<PendingBankDebit[]>([]);
   const [referencesLoading, setReferencesLoading] = useState(true);
   const [screenError, setScreenError] = useState<string | null>(null);
 
@@ -315,30 +313,16 @@ function TransactionsMobileScreen() {
   useFocusEffect(
       useCallback(() => {
         void loadScreenData();
-        let active = true;
-        function refreshPendingDebits() {
-          void getPendingBankDebits().then((debits) => {
-            if (active) setPendingDebits(debits);
-          }).catch(() => {
-            // A indisponibilidade dos pendentes não bloqueia o histórico.
-          });
-        }
-        refreshPendingDebits();
-
         // O scheduler do backend pode gerar ocorrências recorrentes enquanto
         // esta tela permanece aberta. Atualiza silenciosamente para que elas
         // apareçam no histórico sem exigir troca de aba ou recarga manual.
         const intervalId = setInterval(() => {
-          refreshPendingDebits();
           void refreshTransactions({ silent: true }).catch(() => {
             // O erro já fica disponível no estado do context.
           });
         }, 10_000);
 
-        return () => {
-          active = false;
-          clearInterval(intervalId);
-        };
+        return () => clearInterval(intervalId);
       }, [loadScreenData, refreshTransactions]),
   );
 
@@ -387,14 +371,6 @@ function TransactionsMobileScreen() {
     String(selectedMonth.getMonth() + 1).padStart(2, '0'),
   ].join('-');
 
-  const visiblePendingDebits = pendingDebits.filter((debit) => {
-    if (selectedFilter !== 'all' && selectedFilter !== 'expense') return false;
-    if (!getLocalDateKey(debit.timestamp).startsWith(monthKey)) return false;
-    const account = accountsById.get(debit.accountId);
-    const text = `${debit.description ?? 'Débito no cartão'} ${account?.name ?? ''}`;
-    return text.toLocaleLowerCase('pt-BR').includes(searchQuery.trim().toLocaleLowerCase('pt-BR'));
-  });
-
   const monthTransactions = useMemo(
       () =>
           mappedTransactions.filter((transaction) =>
@@ -403,11 +379,15 @@ function TransactionsMobileScreen() {
       [mappedTransactions, monthKey],
   );
 
+  const operationalIds = useMemo(
+      () => new Set(filterOperationalTransactions(apiTransactions, accounts).map(({ id }) => id)),
+      [apiTransactions, accounts],
+  );
   const summary = useMemo(
       () =>
           monthTransactions.reduce(
               (totals, transaction) => {
-                if (transaction.currency !== 'BRL') {
+                if (transaction.currency !== 'BRL' || !operationalIds.has(transaction.id)) {
                   return totals;
                 }
 
@@ -423,7 +403,7 @@ function TransactionsMobileScreen() {
               },
               { income: 0, expense: 0, transfer: 0 },
           ),
-      [monthTransactions],
+      [monthTransactions, operationalIds],
   );
 
   const filteredTransactions = useMemo(() => {
@@ -690,28 +670,6 @@ function TransactionsMobileScreen() {
             })}
           </ScrollView>
 
-          {visiblePendingDebits.length > 0 ? (
-            <View style={styles.pendingSection}>
-              <Text style={styles.sectionTitle}>Débitos pendentes</Text>
-              <Text style={styles.pendingMeta}>Entram no resumo após a confirmação do banco.</Text>
-              {visiblePendingDebits.map((debit) => (
-                <View key={`${debit.accountId}:${debit.id}`} style={styles.pendingRow}>
-                  <View style={styles.pendingDetails}>
-                    <Text style={styles.pendingDescription}>
-                      {debit.description || 'Débito no cartão'}
-                    </Text>
-                    <Text style={styles.pendingMeta}>
-                      {accountsById.get(debit.accountId)?.name ?? 'Open Finance'} · {formatDateHeading(getLocalDateKey(debit.timestamp))}
-                    </Text>
-                  </View>
-                  <Text style={styles.pendingDescription}>
-                    {maskMoney(formatCurrency(debit.amount, debit.currency), hidden)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-
           {loading ? (
               <View style={styles.statusState}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
@@ -733,8 +691,7 @@ function TransactionsMobileScreen() {
                   <Text style={styles.retryButtonText}>Tentar novamente</Text>
                 </Pressable>
               </View>
-          ) : groupedTransactions.length === 0 && visiblePendingDebits.length > 0 ? null
-            : groupedTransactions.length === 0 ? (
+          ) : groupedTransactions.length === 0 ? (
               <View style={styles.emptyState}>
                 <SymbolView name={mobileIcons.search} size={26} tintColor={COLORS.primary} />
                 <Text style={styles.emptyTitle}>
@@ -798,14 +755,6 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  pendingSection: { gap: 8, marginBottom: 16 },
-  pendingRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    gap: 12, backgroundColor: mobileColors.surfaceMuted, padding: 12, borderRadius: 10,
-  },
-  pendingDetails: { flex: 1, gap: 4 },
-  pendingDescription: { color: mobileColors.text, fontFamily: mobileFont, fontWeight: '700' },
-  pendingMeta: { color: mobileColors.textSecondary, fontFamily: mobileFont, fontSize: 12 },
 
   safeArea: {
     flex: 1,
